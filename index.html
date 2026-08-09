@@ -440,6 +440,9 @@
     </div>
 
     <script>
+      // Render Backend Base URL
+      const API_BASE_URL = 'https://sql-practice-engine.onrender.com';
+
       function parseJwt(token) {
         var base64Url = token.split('.')[1];
         var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -482,7 +485,7 @@
 
       async function fetchTables() {
         try {
-          const response = await fetch('/api/tables');
+          const response = await fetch(`${API_BASE_URL}/api/tables`);
           const tables = await response.json();
           const tablesListDiv = document.getElementById('tablesList');
           if (tables && tables.length > 0) {
@@ -529,7 +532,7 @@
         outputArea.innerHTML = `<span style="color: var(--text-muted);">Executing query...</span>`;
 
         try {
-          const response = await fetch('/api/query', {
+          const response = await fetch(`${API_BASE_URL}/api/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: query }),
