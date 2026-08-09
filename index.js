@@ -1,10 +1,12 @@
 const express = require('express');
+const cors = require('cors'); // 1. CORS Package Require Kiya
 const initSqlJs = require('sql.js');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors()); // 2. CORS Enable Kiya (Crucial for GitHub Pages)
 app.use(express.json());
 app.use(express.static(__dirname));
 
