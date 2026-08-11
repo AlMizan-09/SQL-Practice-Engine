@@ -103,6 +103,9 @@
     </div>
 
     <script>
+        // Backend Render Server URL
+        const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
+
         const firebaseConfig = {
             apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
             authDomain: "online-compiler-37671.firebaseapp.com",
@@ -134,7 +137,7 @@
             }
         });
 
-        // Dynamic Dynamic Line Number Fix
+        // Dynamic Line Number Fix
         function updateLineNumbers() {
             const textarea = document.getElementById('sqlInput');
             const lineNumbers = document.getElementById('lineNumbers');
@@ -156,7 +159,7 @@
 
         async function fetchTables() {
             try {
-                const response = await fetch('/api/tables');
+                const response = await fetch(`${BACKEND_URL}/api/tables`);
                 const tables = await response.json();
                 const tablesListDiv = document.getElementById('tablesList');
                 if (tables && tables.length > 0) {
@@ -195,7 +198,7 @@
             outputArea.innerHTML = `<span style="color: var(--text-muted);">Executing query...</span>`;
 
             try {
-                const response = await fetch('/api/query', {
+                const response = await fetch(`${BACKEND_URL}/api/query`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: query })
