@@ -116,14 +116,14 @@
         <div class="workspace-center">
             <div class="editor-toolbar">
                 <div class="btn-group">
-                    <button class="action-btn btn-run" id="runBtn">▶ Run (Ctrl+Enter)</button>
-                    <button class="action-btn" id="clearBtn">🧹 Clear</button>
+                    <button class="action-btn btn-run" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
+                    <button class="action-btn" onclick="clearEditor()">🧹 Clear</button>
                 </div>
             </div>
 
             <div class="editor-box">
                 <div class="line-numbers" id="lineNumbers">1</div>
-                <textarea id="sqlInput" spellcheck="false" placeholder="Write any SQL query..."></textarea>
+                <textarea id="sqlInput" spellcheck="false" placeholder="Write any SQL query..." oninput="updateLineNumbers()" onscroll="syncScroll()" onkeyup="updateLineNumbers()"></textarea>
             </div>
 
             <div class="output-box">
@@ -136,11 +136,11 @@
     </div>
 
     <div class="ai-assistant-container">
-        <button class="ai-fab" id="aiFabBtn" title="SQL AI Assistant">🤖</button>
+        <button class="ai-fab" onclick="toggleAIChat()" title="SQL AI Assistant">🤖</button>
         <div class="ai-chat-box" id="aiChatBox">
             <div class="ai-chat-header">
                 <span>🤖 SQL AI Helper</span>
-                <span style="cursor:pointer;" id="aiCloseBtn">✖</span>
+                <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
             </div>
             <div class="ai-chat-body" id="aiChatBody">
                 <div class="ai-msg ai-msg-bot">
@@ -148,16 +148,16 @@
                 </div>
             </div>
             <div class="ai-chat-footer">
-                <input type="text" id="aiInput" placeholder="Ask SQL question...">
-                <button id="aiSendBtn">Send</button>
+                <input type="text" id="aiInput" placeholder="Ask SQL question..." onkeypress="if(event.key==='Enter') sendAIMessage()">
+                <button onclick="sendAIMessage()">Send</button>
             </div>
         </div>
     </div>
 
     <script>
-        var BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
+        window.BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
 
-        function updateLineNumbers() {
+        window.updateLineNumbers = function() {
             var textarea = document.getElementById('sqlInput');
             var lineNumbers = document.getElementById('lineNumbers');
             if (!textarea || !lineNumbers) return;
@@ -167,33 +167,33 @@
                 lineHTML += i + '\n';
             }
             lineNumbers.textContent = lineHTML;
-        }
+        };
 
-        function syncScroll() {
+        window.syncScroll = function() {
             var textarea = document.getElementById('sqlInput');
             var lineNumbers = document.getElementById('lineNumbers');
             if (textarea && lineNumbers) {
                 lineNumbers.scrollTop = textarea.scrollTop;
             }
-        }
+        };
 
-        function toggleTheme() {
+        window.toggleTheme = function() {
             var body = document.body;
             var themeBtn = document.getElementById('themeBtn');
             body.classList.toggle('light-theme');
             if (themeBtn) {
                 themeBtn.textContent = body.classList.contains('light-theme') ? '☀️' : '🌙';
             }
-        }
+        };
 
-        function toggleAIChat() {
+        window.toggleAIChat = function() {
             var chatBox = document.getElementById('aiChatBox');
             if (chatBox) {
                 chatBox.style.display = (chatBox.style.display === 'flex') ? 'none' : 'flex';
             }
-        }
+        };
 
-        function sendAIMessage() {
+        window.sendAIMessage = function() {
             var input = document.getElementById('aiInput');
             var chatBody = document.getElementById('aiChatBody');
             if (!input || !chatBody) return;
@@ -205,17 +205,17 @@
             input.value = '';
 
             var response = "";
-            if (query.indexOf("select") !== -1) {
+            if (query.includes("select")) {
                 response = "<b>SELECT</b> statement is used to fetch data from a database.<br><br><b>Hindi:</b> Table se data nikalne ke liye SELECT ka use hota hai.<br><br><b>Bengali:</b> টেবিল থেকে ডেটা তোলার জন্য SELECT ব্যবহার করা হয়।";
-            } else if (query.indexOf("insert") !== -1) {
+            } else if (query.includes("insert")) {
                 response = "<b>INSERT INTO</b> is used to add new rows.<br><br><b>Hindi:</b> Naya data ya row add karne ke liye INSERT INTO ka use karte hain.<br><br><b>Bengali:</b> নতুন ডেটা যোগ করার জন্য INSERT INTO ব্যবহার করা হয়।";
-            } else if (query.indexOf("update") !== -1) {
+            } else if (query.includes("update")) {
                 response = "<b>UPDATE</b> modifies existing data.<br><br><b>Hindi:</b> Purana data change karne ke liye UPDATE ka upyog hota hai.<br><br><b>Bengali:</b> ডেটা পরিবর্তন করতে UPDATE ব্যবহার হয়।";
-            } else if (query.indexOf("delete") !== -1) {
+            } else if (query.includes("delete")) {
                 response = "<b>DELETE</b> removes rows from a table.<br><br><b>Hindi:</b> Data delete karne ke liye kaam aata hai.<br><br><b>Bengali:</b> টেবিল থেকে ডেটা মুছে ফেলার জন্য DELETE ব্যবহার করা হয়।";
-            } else if (query.indexOf("where") !== -1) {
+            } else if (query.includes("where")) {
                 response = "<b>WHERE</b> clause filters records.<br><br><b>Hindi:</b> Specific data filter karne ke liye WHERE ka use hota hai.<br><br><b>Bengali:</b> নির্দিষ্ট ডেটা পেতে WHERE ব্যবহার করা হয়।";
-            } else if (query.indexOf("join") !== -1) {
+            } else if (query.includes("join")) {
                 response = "<b>JOIN</b> combines rows from two or more tables.<br><br><b>Hindi:</b> Do tables ko jod kar data nikalne ke liye JOIN ka use karte hain.<br><br><b>Bengali:</b> দুটো টেবিল যুক্ত করতে JOIN ব্যবহার করা হয়।";
             } else {
                 response = "Ask me any SQL command like SELECT, INSERT, UPDATE, DELETE, WHERE, or JOIN! (Supported: English, Hindi, Bengali)";
@@ -227,19 +227,19 @@
             }, 300);
 
             chatBody.scrollTop = chatBody.scrollHeight;
-        }
+        };
 
-        function clearEditor() {
+        window.clearEditor = function() {
             var textarea = document.getElementById('sqlInput');
             if (textarea) textarea.value = '';
-            updateLineNumbers();
+            window.updateLineNumbers();
             var outputArea = document.getElementById('outputArea');
             if (outputArea) {
                 outputArea.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
             }
-        }
+        };
 
-        function executeSQL() {
+        window.executeSQL = async function() {
             var textarea = document.getElementById('sqlInput');
             var outputArea = document.getElementById('outputArea');
             if (!textarea || !outputArea) return;
@@ -252,13 +252,15 @@
 
             outputArea.innerHTML = '<span style="color: var(--text-muted);">Executing query...</span>';
 
-            fetch(BACKEND_URL + '/api/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query })
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
+            try {
+                var response = await fetch(window.BACKEND_URL + '/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                var data = await response.json();
+
                 if (data.error) {
                     outputArea.innerHTML = '<div class="status-msg status-error">❌ ' + data.error + '</div>';
                     return;
@@ -266,61 +268,54 @@
 
                 if (data.columns && data.rows && data.rows.length > 0) {
                     var tableHTML = '<table><thead><tr>';
-                    for (var i = 0; i < data.columns.length; i++) {
-                        tableHTML += '<th>' + data.columns[i] + '</th>';
-                    }
+                    data.columns.forEach(function(col) { tableHTML += '<th>' + col + '</th>'; });
                     tableHTML += '</tr></thead><tbody>';
-                    for (var r = 0; r < data.rows.length; r++) {
+                    data.rows.forEach(function(row) {
                         tableHTML += '<tr>';
-                        for (var c = 0; c < data.rows[r].length; c++) {
-                            var cellVal = data.rows[r][c];
-                            tableHTML += '<td>' + (cellVal !== null ? cellVal : 'NULL') + '</td>';
-                        }
+                        row.forEach(function(cell) { tableHTML += '<td>' + (cell !== null ? cell : 'NULL') + '</td>'; });
                         tableHTML += '</tr>';
-                    }
+                    });
                     tableHTML += '</tbody></table>';
                     outputArea.innerHTML = tableHTML;
                 } else {
                     outputArea.innerHTML = '<div class="status-msg status-success">' + (data.message || '✅ Query Executed Successfully!') + '</div>';
                 }
 
-                fetchTables();
-            })
-            .catch(function(err) {
+                window.fetchTables();
+            } catch (err) {
                 outputArea.innerHTML = '<div class="status-msg status-error">❌ Server Error: Engine not responding.</div>';
-            });
-        }
+            }
+        };
 
-        function fetchTables() {
-            fetch(BACKEND_URL + '/api/tables')
-            .then(function(res) { return res.json(); })
-            .then(function(tables) {
+        window.fetchTables = async function() {
+            try {
+                var response = await fetch(window.BACKEND_URL + '/api/tables');
+                var tables = await response.json();
                 var tablesListDiv = document.getElementById('tablesList');
                 if (tablesListDiv) {
                     if (tables && tables.length > 0) {
                         var html = '';
-                        for (var i = 0; i < tables.length; i++) {
-                            html += '<div class="table-item" onclick="loadTableQuery(\'' + tables[i].name + '\')"><span>> ' + tables[i].name + '</span></div>';
-                        }
+                        tables.forEach(function(t) {
+                            html += '<div class="table-item" onclick="loadTableQuery(\'' + t.name + '\')"><span>> ' + t.name + '</span></div>';
+                        });
                         tablesListDiv.innerHTML = html;
                     } else {
                         tablesListDiv.innerHTML = '<span style="color: #64748b; font-size: 12px; padding: 10px;">No tables found.</span>';
                     }
                 }
-            })
-            .catch(function(err) {});
-        }
+            } catch (err) {}
+        };
 
-        function loadTableQuery(tableName) {
+        window.loadTableQuery = function(tableName) {
             var textarea = document.getElementById('sqlInput');
             if (textarea) {
                 textarea.value = 'SELECT * FROM ' + tableName + ';';
-                updateLineNumbers();
-                executeSQL();
+                window.updateLineNumbers();
+                window.executeSQL();
             }
-        }
+        };
 
-        // Initialize Firebase safely
+        // Firebase Initialization Safely
         try {
             var firebaseConfig = {
                 apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
@@ -335,14 +330,14 @@
                 firebase.initializeApp(firebaseConfig);
             }
 
-            function signInWithGoogle() {
+            window.signInWithGoogle = function() {
                 if (typeof firebase !== 'undefined' && firebase.auth) {
                     var provider = new firebase.auth.GoogleAuthProvider();
                     firebase.auth().signInWithPopup(provider).catch(function() {
                         firebase.auth().signInWithRedirect(provider);
                     });
                 }
-            }
+            };
 
             if (typeof firebase !== 'undefined' && firebase.auth) {
                 firebase.auth().onAuthStateChanged(function(user) {
@@ -364,43 +359,19 @@
                 });
             }
         } catch (e) {
-            console.log("Firebase error:", e);
+            console.log("Firebase Auth optional error:", e);
         }
 
-        // Attach event listeners after page load
-        window.onload = function() {
-            var runBtn = document.getElementById('runBtn');
-            var clearBtn = document.getElementById('clearBtn');
+        document.addEventListener('DOMContentLoaded', function() {
             var sqlInput = document.getElementById('sqlInput');
-            var aiFabBtn = document.getElementById('aiFabBtn');
-            var aiCloseBtn = document.getElementById('aiCloseBtn');
-            var aiSendBtn = document.getElementById('aiSendBtn');
-            var aiInput = document.getElementById('aiInput');
-
-            if (runBtn) runBtn.onclick = executeSQL;
-            if (clearBtn) clearBtn.onclick = clearEditor;
-            if (aiFabBtn) aiFabBtn.onclick = toggleAIChat;
-            if (aiCloseBtn) aiCloseBtn.onclick = toggleAIChat;
-            if (aiSendBtn) aiSendBtn.onclick = sendAIMessage;
-
             if (sqlInput) {
-                sqlInput.oninput = updateLineNumbers;
-                sqlInput.onkeyup = updateLineNumbers;
-                sqlInput.onscroll = syncScroll;
-                sqlInput.onkeydown = function(e) {
-                    if (e.ctrlKey && e.key === 'Enter') executeSQL();
-                };
+                sqlInput.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && e.key === 'Enter') window.executeSQL();
+                });
             }
-
-            if (aiInput) {
-                aiInput.onkeypress = function(e) {
-                    if (e.key === 'Enter') sendAIMessage();
-                };
-            }
-
-            updateLineNumbers();
-            fetchTables();
-        };
+            window.updateLineNumbers();
+            window.fetchTables();
+        });
     </script>
 </body>
 </html>
