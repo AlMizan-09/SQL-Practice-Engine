@@ -136,7 +136,7 @@
     </div>
 
     <div class="ai-assistant-container">
-        <button class="ai-fab" onclick="toggleAIChat()" title="SQL AI Assistant">🤖</button>
+        <button class="ai-fab" onclick="toggleAIChat()" title="AI Assistant">🤖</button>
         <div class="ai-chat-box" id="aiChatBox">
             <div class="ai-chat-header">
                 <span>🤖 Gemini AI Assistant</span>
@@ -144,11 +144,11 @@
             </div>
             <div class="ai-chat-body" id="aiChatBody">
                 <div class="ai-msg ai-msg-bot">
-                    Hey! Main apka AI Assistant hu. Aap mujhse SQL ke baare me ya koi bhi normal baat puch sakte ho! 😊
+                    Hello! I'm your AI Assistant. How can I help you today?
                 </div>
             </div>
             <div class="ai-chat-footer">
-                <input type="text" id="aiInput" placeholder="Pucho kuch bhi..." onkeypress="if(event.key==='Enter') sendAIMessage()">
+                <input type="text" id="aiInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAIMessage()">
                 <button onclick="sendAIMessage()">Send</button>
             </div>
         </div>
@@ -157,8 +157,11 @@
     <script>
         window.BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
         
-        // Gemini API Configuration
-        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // <-- Yaha apni API Key daalna
+        // Google Gemini API Key
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // <-- Enter your key here
+
+        // Chat History for contextual conversation
+        let chatHistory = [];
 
         window.updateLineNumbers = function() {
             var textarea = document.getElementById('sqlInput');
@@ -196,7 +199,7 @@
             }
         };
 
-        // Real AI Integration using Gemini API
+        // Real AI Call using Gemini 2.5 Flash Model
         window.sendAIMessage = async function() {
             var input = document.getElementById('aiInput');
             var chatBody = document.getElementById('aiChatBody');
@@ -205,25 +208,28 @@
             var userText = input.value.trim();
             if (!userText) return;
 
-            // User Message Show
-            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + userText + '</div>';
+            // Display User Message
+            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + escapeHtml(userText) + '</div>';
             input.value = '';
             chatBody.scrollTop = chatBody.scrollHeight;
 
-            // Loading Message Show
+            // Display Loading Message
             var loadingId = 'loading-' + Date.now();
             chatBody.innerHTML += '<div class="ai-msg ai-msg-bot" id="' + loadingId + '">Thinking... 💭</div>';
             chatBody.scrollTop = chatBody.scrollHeight;
 
+            // Maintain Chat History
+            chatHistory.push({ role: "user", parts: [{ text: userText }] });
+
             try {
-                // Fetch response from Gemini API
-                var response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                var response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: userText }]
-                        }]
+                        systemInstruction: {
+                            parts: [{ text: "You are a friendly and intelligent AI assistant inside a SQL Practice web app. Respond naturally to the user in whatever language they speak to you (English, Hindi, Hinglish, Bengali, etc.). Match their language dynamically without explicitly listing supported languages." }]
+                        },
+                        contents: chatHistory
                     })
                 });
 
@@ -232,20 +238,29 @@
 
                 if (data.candidates && data.candidates[0].content.parts[0].text) {
                     botMessage = data.candidates[0].content.parts[0].text;
-                    // Format bold and newlines slightly
-                    botMessage = botMessage.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                    chatHistory.push({ role: "model", parts: [{ text: botMessage }] });
+                    
+                    // Basic Markdown Parsing
+                    botMessage = botMessage
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                        .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px;">$1</code>');
                 } else {
-                    botMessage = "Sorry, main abhi response generate nahi kar paaya.";
+                    botMessage = "Sorry, I couldn't generate a response. Please try again.";
                 }
 
                 document.getElementById(loadingId).innerHTML = botMessage;
 
             } catch (err) {
-                document.getElementById(loadingId).innerHTML = "❌ Connection Error! Kripya API Key check karein.";
+                document.getElementById(loadingId).innerHTML = "❌ Connection Error! Please check your API key or network connection.";
             }
 
             chatBody.scrollTop = chatBody.scrollHeight;
         };
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
         window.clearEditor = function() {
             var textarea = document.getElementById('sqlInput');
