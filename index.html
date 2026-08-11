@@ -1,240 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL Practice Engine</title>
-  <style>
-    :root {
-      --bg-color: #0f172a;
-      --panel-bg: #1e293b;
-      --text-color: #f8fafc;
-      --border-color: #334155;
-      --editor-bg: #090d16;
-      --accent-color: #3b82f6;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Practice Engine</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0b1329;
+            --panel-bg: #111c38;
+            --border-color: #1e2d54;
+            --accent-blue: #0088ff;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --editor-bg: #070c1a;
+            --line-num-bg: #0a1124;
+        }
 
-    [data-theme="light"] {
-      --bg-color: #f1f5f9;
-      --panel-bg: #ffffff;
-      --text-color: #0f172a;
-      --border-color: #cbd5e1;
-      --editor-bg: #ffffff;
-      --accent-color: #2563eb;
-    }
+        /* Light Theme Mode Variables */
+        [data-theme="light"] {
+            --bg-dark: #f1f5f9;
+            --panel-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --accent-blue: #2563eb;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --editor-bg: #f8fafc;
+            --line-num-bg: #e2e8f0;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; display: flex; flex-direction: column; transition: background-color 0.3s ease, color 0.3s ease; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; transition: background 0.3s ease, color 0.3s ease; }
 
-    /* Header */
-    header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); }
-    .logo { font-size: 20px; font-weight: bold; color: var(--accent-color); }
-    .header-actions { display: flex; align-items: center; gap: 15px; }
+        .navbar { height: 50px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .nav-brand { font-weight: bold; color: #38bdf8; font-size: 16px; }
 
-    /* Simple Pure White Theme Toggle Button */
-    .theme-toggle-btn {
-      background-color: transparent;
-      border: 1px solid #ffffff;
-      color: #ffffff;
-      padding: 6px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
+        .auth-container { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        
+        /* Simple Pure White Theme Toggle Button */
+        .theme-toggle-btn {
+            background-color: transparent;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .theme-toggle-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
 
-    .theme-toggle-btn:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
+        .google-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .user-profile { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #38bdf8; }
+        .btn-logout { background: transparent; color: #ef4444; border: none; font-size: 11px; cursor: pointer; text-decoration: underline; margin-left: 5px; }
 
-    .google-btn { background: #4285f4; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .sub-bar { height: 34px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; font-size: 12px; color: var(--text-muted); }
+        .tag { background: #1e293b; padding: 2px 8px; border-radius: 4px; color: #38bdf8; }
 
-    /* Layout */
-    .main-container { display: flex; flex: 1; overflow: hidden; }
-    .sidebar { width: 240px; background-color: var(--panel-bg); border-right: 1px solid var(--border-color); padding: 15px; }
-    .editor-section { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 15px; }
-    
-    /* Code Area */
-    .editor-toolbar { display: flex; gap: 10px; margin-bottom: 10px; }
-    .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; }
-    .btn-run { background-color: #22c55e; color: white; }
-    .btn-clear { background-color: #ef4444; color: white; }
-    textarea { width: 100%; height: 200px; background-color: var(--editor-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 14px; resize: vertical; }
+        .main-layout { flex: 1; display: flex; overflow: hidden; }
 
-    /* Output Console */
-    .output-box { flex: 1; background-color: var(--editor-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; overflow: auto; }
+        .sidebar-left { width: 240px; background: var(--panel-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-title { padding: 12px 16px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+        .table-list { padding: 10px; overflow-y: auto; flex: 1; }
+        .table-item { padding: 8px 12px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-family: monospace; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 
-    /* Floating AI Chatbot (Right Bottom) */
-    .ai-chat-wrapper { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
-    .ai-trigger-btn { width: 55px; height: 55px; border-radius: 50%; background-color: var(--accent-color); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
-    
-    .ai-chat-box { display: none; position: fixed; bottom: 85px; right: 20px; width: 350px; height: 460px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden; }
-    .ai-chat-header { background: var(--accent-color); color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-    .ai-chat-body { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
-    .ai-msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; }
-    .ai-msg.user { background-color: var(--accent-color); color: white; align-self: flex-end; }
-    .ai-msg.bot { background-color: var(--editor-bg); border: 1px solid var(--border-color); align-self: flex-start; }
-    .ai-chat-footer { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 6px; }
-    .ai-chat-footer input { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--editor-bg); color: var(--text-color); outline: none; }
-    .ai-chat-footer button { padding: 8px 12px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; }
-  </style>
+        .workspace-center { flex: 1; display: flex; flex-direction: column; }
+        .editor-toolbar { height: 40px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; }
+        .btn-group { display: flex; gap: 8px; }
+        .action-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .btn-run { background: var(--accent-blue); border-color: var(--accent-blue); font-weight: bold; }
+
+        /* Code Editor Container */
+        .editor-box { height: 50%; background: var(--editor-bg); display: flex; position: relative; overflow: hidden; }
+        .line-numbers { min-width: 45px; background: var(--line-num-bg); padding: 12px 8px; color: #475569; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; text-align: right; border-right: 1px solid var(--border-color); user-select: none; overflow: hidden; white-space: pre-wrap; }
+        textarea { flex: 1; background: transparent; color: var(--text-main); border: none; outline: none; padding: 12px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; resize: none; overflow-y: auto; white-space: pre; }
+
+        .output-box { flex: 1; background: var(--bg-dark); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .output-header { height: 32px; background: var(--panel-bg); padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .output-content { flex: 1; padding: 12px; overflow: auto; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-dark); border-radius: 4px; }
+        th { background: var(--panel-bg); color: var(--text-main); text-align: left; padding: 8px; border: 1px solid var(--border-color); font-weight: 600; }
+        td { border: 1px solid var(--border-color); padding: 6px 8px; color: var(--text-muted); font-family: monospace; }
+        .status-msg { padding: 12px; border-radius: 6px; font-size: 13px; font-family: monospace; font-weight: bold; }
+        .status-success { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
+        .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; }
+
+        /* Floating AI Chatbot (Right Bottom Corner) */
+        .ai-chat-wrapper { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .ai-trigger-btn { width: 50px; height: 50px; border-radius: 50%; background-color: var(--accent-blue); color: white; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+        
+        .ai-chat-box { display: none; position: fixed; bottom: 80px; right: 20px; width: 340px; height: 440px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow: hidden; }
+        .ai-chat-header { background: var(--accent-blue); color: white; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+        .ai-chat-body { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+        .ai-msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; }
+        .ai-msg.user { background-color: var(--accent-blue); color: white; align-self: flex-end; }
+        .ai-msg.bot { background-color: var(--editor-bg); border: 1px solid var(--border-color); color: var(--text-main); align-self: flex-start; }
+        .ai-chat-footer { padding: 8px; border-top: 1px solid var(--border-color); display: flex; gap: 6px; }
+        .ai-chat-footer input { flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--editor-bg); color: var(--text-main); font-size: 12px; outline: none; }
+        .ai-chat-footer button { padding: 6px 12px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header>
-    <div class="logo">⚙️ SQL Practice Engine</div>
-    <div class="header-actions">
-      <!-- Simple Pure White Theme Button -->
-      <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
-        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
-      </button>
-      <button class="google-btn">Sign in with Google</button>
-    </div>
-  </header>
-
-  <div class="main-container">
-    <div class="sidebar">
-      <h3>📁 DATABASE TABLES</h3>
-      <ul id="tableList" style="margin-top: 10px; list-style: none;"></ul>
+    <div class="navbar">
+        <div class="nav-brand">🌐 SQL Practice Engine</div>
+        <div class="auth-container" id="authContainer">
+            <!-- Simple Pure White Theme Button (Google Sign In ke Left Side) -->
+            <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
+                <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+            </button>
+            <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+        </div>
     </div>
 
-    <div class="editor-section">
-      <div class="editor-toolbar">
-        <button class="btn btn-run" onclick="runQuery()">▶ Run (Ctrl+Enter)</button>
-        <button class="btn btn-clear" onclick="clearEditor()">🧹 Clear</button>
-      </div>
-      <textarea id="queryInput" placeholder="Enter your SQL query here..."></textarea>
-      
-      <h3>Query Output & Execution Log</h3>
-      <div class="output-box" id="output">Output will be displayed here...</div>
+    <div class="sub-bar">
+        <span>Engine Status: <span class="tag">Active & Ready</span></span>
     </div>
-  </div>
 
-  <!-- AI Assistant Chatbot (Right Bottom) -->
-  <div class="ai-chat-wrapper">
-    <button class="ai-trigger-btn" onclick="toggleAIChat()">🤖</button>
-    <div class="ai-chat-box" id="aiChatBox">
-      <div class="ai-chat-header">
-        <span>SQL AI Assistant</span>
-        <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
-      </div>
-      <div class="ai-chat-body" id="aiChatBody">
-        <div class="ai-msg bot">Hi! I am your SQL Assistant. Ask me anything about SQL in English, Hindi, or Bengali!</div>
-      </div>
-      <div class="ai-chat-footer">
-        <input type="text" id="aiInput" placeholder="Ask SQL question..." onkeypress="handleAIPress(event)">
-        <button onclick="sendAIMessage()">Send</button>
-      </div>
+    <div class="main-layout">
+        <div class="sidebar-left">
+            <div class="sidebar-title">📁 Database Tables</div>
+            <div class="table-list" id="tablesList"></div>
+        </div>
+
+        <div class="workspace-center">
+            <div class="editor-toolbar">
+                <div class="btn-group">
+                    <button class="action-btn btn-run" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
+                    <button class="action-btn" onclick="clearEditor()">🧹 Clear</button>
+                </div>
+            </div>
+
+            <div class="editor-box">
+                <div class="line-numbers" id="lineNumbers">1</div>
+                <textarea id="sqlInput" spellcheck="false" placeholder="Write any SQL query..." oninput="updateLineNumbers()" onscroll="syncScroll()" onkeyup="updateLineNumbers()"></textarea>
+            </div>
+
+            <div class="output-box">
+                <div class="output-header">📊 Query Output & Execution Log</div>
+                <div class="output-content" id="outputArea">
+                    <span style="color: var(--text-muted); font-size: 13px;">Write a query and click <b>Run</b>.</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const BACKEND_URL = 'https://sql-practice-engine-2.onrender.com';
+    <!-- AI Assistant Floating Chatbot (Right Bottom Corner) -->
+    <div class="ai-chat-wrapper">
+        <button class="ai-trigger-btn" onclick="toggleAIChat()">🤖</button>
+        <div class="ai-chat-box" id="aiChatBox">
+            <div class="ai-chat-header">
+                <span>SQL AI Assistant</span>
+                <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
+            </div>
+            <div class="ai-chat-body" id="aiChatBody">
+                <div class="ai-msg bot">Hi! I am your SQL Assistant. Ask me anything about SQL in English, Hindi, or Bengali!</div>
+            </div>
+            <div class="ai-chat-footer">
+                <input type="text" id="aiInput" placeholder="Ask SQL question..." onkeypress="handleAIPress(event)">
+                <button onclick="sendAIMessage()">Send</button>
+            </div>
+        </div>
+    </div>
 
-    // Toggle Theme Functionality
-    function toggleTheme() {
-      const currentTheme = document.body.getAttribute('data-theme');
-      if (currentTheme === 'light') {
-        document.body.removeAttribute('data-theme');
-        document.getElementById('themeIcon').innerText = '🌙';
-        document.getElementById('themeText').innerText = 'Dark';
-      } else {
-        document.body.setAttribute('data-theme', 'light');
-        document.getElementById('themeIcon').innerText = '☀️';
-        document.getElementById('themeText').innerText = 'Light';
-      }
-    }
+    <script>
+        // Backend Render Server URL
+        const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
 
-    // Toggle AI Assistant Box
-    function toggleAIChat() {
-      const chatBox = document.getElementById('aiChatBox');
-      chatBox.style.display = chatBox.style.display === 'flex' ? 'none' : 'flex';
-    }
+        const firebaseConfig = {
+            apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
+            authDomain: "online-compiler-37671.firebaseapp.com",
+            projectId: "online-compiler-37671",
+            storageBucket: "online-compiler-37671.firebasestorage.app",
+            messagingSenderId: "870547958791",
+            appId: "1:870547958791:web:310fa0b819440bfcd30ea2"
+        };
 
-    function handleAIPress(e) {
-      if (e.key === 'Enter') sendAIMessage();
-    }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-    // Multilingual Response Logic (English, Hindi, Bengali)
-    function getAIResponse(question) {
-      const q = question.toLowerCase();
-      
-      if (q.includes('select')) {
-        return "<b>SELECT:</b> Used to fetch data from database.<br><b>Hindi:</b> Database se data query/read karne ke liye use hota hai.<br><b>Bengali:</b> ডাটাবেস থেকে ডেটা পাওয়ার জন্য ব্যবহার করা হয়।<br><br><i>Example: SELECT * FROM TableName;</i>";
-      } else if (q.includes('insert')) {
-        return "<b>INSERT:</b> Used to insert new records.<br><b>Hindi:</b> Naya record add karne ke liye.<br><b>Bengali:</b> নতুন ডেটা যোগ করতে ব্যবহৃত হয়।<br><br><i>Example: INSERT INTO Table VALUES (...);</i>";
-      } else if (q.includes('delete')) {
-        return "<b>DELETE:</b> Removes specific rows based on condition.<br><b>Hindi:</b> Condition ke hisab se rows delete karta hai.<br><b>Bengali:</b> নির্দিষ্ট রো মুছে ফেলতে ব্যবহার করা হয়।";
-      } else if (q.includes('truncate')) {
-        return "<b>TRUNCATE:</b> Deletes all rows instantly while preserving table structure.<br><b>Hindi:</b> Table ka saara data ek baar mein khali karta hai.<br><b>Bengali:</b> টেবিলের সব ডেটা একবারে মুছে ফেলে।";
-      } else if (q.includes('create')) {
-        return "<b>CREATE:</b> Used to build new tables or views.<br><b>Hindi:</b> Naya table ya structure banane ke liye.<br><b>Bengali:</b> নতুন টেবিল তৈরি করতে ব্যবহৃত হয়।";
-      } else if (q.includes('alter')) {
-        return "<b>ALTER:</b> Modifies table structure (add/drop columns).<br><b>Hindi:</b> Table mein new column add ya modify karne ke liye.<br><b>Bengali:</b> টেবিল স্ট্রাকচার পরিবর্তন করতে ব্যবহৃত হয়।";
-      } else {
-        return "You can ask me about any SQL commands like SELECT, INSERT, UPDATE, DELETE, CREATE, TRUNCATE, ALTER, or JOINs in English, Hindi, or Bengali!";
-      }
-    }
-
-    function sendAIMessage() {
-      const input = document.getElementById('aiInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const body = document.getElementById('aiChatBody');
-      body.innerHTML += `<div class="ai-msg user">${text}</div>`;
-      input.value = '';
-
-      setTimeout(() => {
-        const reply = getAIResponse(text);
-        body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
-        body.scrollTop = body.scrollHeight;
-      }, 400);
-    }
-
-    // Execute Query Logic
-    async function runQuery() {
-      const query = document.getElementById('queryInput').value;
-      const output = document.getElementById('output');
-      output.innerHTML = 'Executing...';
-
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/query`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query })
-        });
-        const data = await res.json();
-        
-        if (data.error) {
-          output.innerHTML = `<span style="color:#ef4444;">❌ Error: ${data.error}</span>`;
-        } else if (data.message) {
-          output.innerHTML = `<span style="color:#22c55e;">${data.message}</span>`;
-        } else if (data.rows) {
-          let html = '<table border="1" style="width:100%; text-align:left; border-collapse:collapse;"><tr>';
-          data.columns.forEach(c => html += `<th style="padding:8px; background:var(--panel-bg);">${c}</th>`);
-          html += '</tr>';
-          data.rows.forEach(r => {
-            html += '<tr>';
-            r.forEach(v => html += `<td style="padding:8px;">${v}</td>`);
-            html += '</tr>';
-          });
-          html += '</table>';
-          output.innerHTML = html;
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
         }
-      } catch (err) {
-        output.innerHTML = `<span style="color:#ef4444;">Server Error: ${err.message}</span>`;
-      }
-    }
 
-    function clearEditor() {
-      document.getElementById('queryInput').value = '';
-    }
-  </script>
-</body>
-</html>
+        auth.onAuthStateChanged(user => {
+            const container = document.getElementById('authContainer');
+            if (user) {
+                container.innerHTML = `
+                    <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
+                        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+                    </button>
+                    <div class="user-profile">
+                        <img src="${user.photoURL}" class="user-avatar">
+                        <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
+                        <button class="btn-logout" onclick="auth.signOut()">Logout</button>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
+                        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+                    </button>
+                    <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
+            }
+        });
+
+        // Toggle Theme Logic
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            if (currentTheme === 'light') {
+                document.body.removeAttribute('data-theme');
+                document.getElementById('themeIcon').innerText = '🌙';
+                document.getElementById('themeText').innerText = 'Dark';
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                document.getElementById('themeIcon').innerText = '☀️';
+                document.getElementById('themeText').innerText = 'Light';
+            }
+        }
+
+        // Floating AI Assistant Logic
+        function toggleAIChat() {
+            const chatBox = document.getElementById('aiChatBox');
+            chatBox.style.display = chatBox.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function handleAIPress(e) {
+            if (e.key === 'Enter') sendAIMessage();
+        }
+
+        function getAIResponse(question) {
+            const q = question.toLowerCase();
+            
+            if (q.includes('select')) {
+                return "<b>SELECT:</b> Used to fetch data from database.<br><b>Hindi:</b> Database se data query/read karne ke liye use hota hai.<br><b>Bengali:</b> ডাটাবেস থেকে ডেটা পাওয়ার জন্য ব্যবহার করা হয়।<br><br><i>Example: SELECT * FROM TableName;</i>";
+            } else if (q.includes('insert')) {
+                return "<b>INSERT:</b> Used to insert new records.<br><b>Hindi:</b> Naya record add karne ke liye.<br><b>Bengali:</b> নতুন ডেটা যোগ করতে ব্যবহৃত হয়।<br><br><i>Example: INSERT INTO Table VALUES (...);</i>";
+            } else if (q.includes('delete')) {
+                return "<b>DELETE:</b> Removes specific rows based on condition.<br><b>Hindi:</b> Condition ke hisab se rows delete karta hai.<br><b>Bengali:</b> নির্দিষ্ট রো মুছে ফেলতে ব্যবহার করা হয়।";
+            } else if (q.includes('truncate')) {
+                return "<b>TRUNCATE:</b> Deletes all rows instantly while preserving table structure.<br><b>Hindi:</b> Table ka saara data ek baar mein khali karta hai.<br><b>Bengali:</b> টেবিলের সব ডেটা একবারে মুছে ফেলে।";
+            } else if (q.includes('create')) {
+                return "<b>CREATE:</b> Used to build new tables or views.<br><b>Hindi:</b> Naya table ya structure banane ke liye.<br><b>Bengali:</b> নতুন টেবিল তৈরি করতে ব্যবহৃত হয়।";
+            } else if (q.includes('alter')) {
+                return "<b>ALTER:</b> Modifies table structure (add/drop columns).<br><b>Hindi:</b> Table mein new column add ya modify karne ke liye.<br><b>Bengali:</b> টেবিল স্ট্রাকচার পরিবর্তন করতে ব্যবহৃত হয়।";
+            } else {
+                return "You can ask me about any SQL commands like SELECT, INSERT, UPDATE, DELETE, CREATE, TRUNCATE, ALTER, or JOINs in English, Hindi, or Bengali!";
+            }
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const body = document.getElementById('aiChatBody');
+            body.innerHTML += `<div class="ai-msg user">${text}</div>`;
+            input.value = '';
+
+            setTimeout(() => {
+                const reply = getAIResponse(text);
+                body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 400);
+        }
+
+        // Dynamic Line Number Fix
+        function updateLineNumbers() {
+            const textarea = document.getElementById('sqlInput');
+            const lineNumbers = document.getElementById('lineNumbers');
+            const lines = textarea.value.split('\n');
+            const lineCount = lines.length;
+            
+            let lineHTML = '';
+            for (let i = 1; i <= lineCount; i++) {
+                lineHTML += i + '\n';
+            }
+            lineNumbers.textContent = lineHTML;
+        }
+
+        function syncScroll() {
+            const textarea = document.getElementById('sqlInput');
+            const lineNumbers = document.getElementById('lineNumbers');
+            lineNumbers.scrollTop = textarea.scrollTop;
+        }
+
+        async function fetchTables() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/tables`);
+                const tables = await response.json();
+                const tablesListDiv = document.getElementById('tablesList');
+                if (tables && tables.length > 0) {
+                    let html = '';
+                    tables.forEach(t => {
+                        html += `<div class="table-item" onclick="loadTableQuery('${t.name}')"><span>> ${t.name}</span></div>`;
+                    });
+                    tablesListDiv.innerHTML = html;
+                } else {
+                    tablesListDiv.innerHTML = '<span style="color: #64748b; font-size: 12px; padding: 10px;">No tables found.</span>';
+                }
+            } catch (err) {}
+        }
+
+        function loadTableQuery(tableName) {
+            document.getElementById('sqlInput').value = `SELECT * FROM ${tableName};`;
+            updateLineNumbers();
+            executeSQL();
+        }
+
+        function clearEditor() {
+            document.getElementById('sqlInput').value = '';
+            updateLineNumbers();
+            document.getElementById('outputArea').innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
+        }
+
+        async function executeSQL() {
+            const query = document.getElementById('sqlInput').value.trim();
+            const outputArea = document.getElementById('outputArea');
+
+            if (!query) {
+                outputArea.innerHTML = `<div class="status-msg status-error">❌ Query Error: Please write a query first.</div>`;
+                return;
+            }
+
+            outputArea.innerHTML = `<span style="color: var(--text-muted);">Executing query...</span>`;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    outputArea.innerHTML = `<div class="status-msg status-error">❌ ${data.error}</div>`;
+                    return;
+                }
+
+                if (data.columns && data.rows && data.rows.length > 0) {
+                    let tableHTML = `<table><thead><tr>`;
+                    data.columns.forEach(col => tableHTML += `<th>${col}</th>`);
+                    tableHTML += `</tr></thead><tbody>`;
+                    data.rows.forEach(row => {
+                        tableHTML += `<tr>`;
+                        row.forEach(cell => tableHTML += `<td>${cell !== null ? cell : '
