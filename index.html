@@ -1,144 +1,243 @@
-const express = require('express');
-const cors = require('cors');
-const initSqlJs = require('sql.js');
-const path = require('path');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
-
-let db;
-
-initSqlJs()
-  .then((SQL) => {
-    db = new SQL.Database();
-    console.log('Database initialized successfully!');
-  })
-  .catch((err) => console.error('Database Init Error:', err));
-
-app.get('/api/tables', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not ready yet' });
-  try {
-    const resTables = db.exec(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    );
-    const tables =
-      resTables.length > 0
-        ? resTables[0].values.map((row) => ({ name: row[0] }))
-        : [];
-    res.json(tables);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/query', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not ready yet' });
-
-  let { query } = req.body;
-  if (!query) return res.status(400).json({ error: 'No query provided' });
-
-  const queries = query.split(';').filter((q) => q.trim().length > 0);
-  let finalResult = null;
-  let errorOccurred = null;
-
-  for (let q of queries) {
-    let sql = q.trim();
-
-    // 1. TRUNCATE FIX: TRUNCATE TABLE -> DELETE FROM
-    if (/^TRUNCATE\s+TABLE/i.test(sql)) {
-      sql = sql.replace(/TRUNCATE\s+TABLE/i, 'DELETE FROM');
-    }
-
-    // 2. CREATE TABLE FIX: Auto-append IF NOT EXISTS
-    if (/^CREATE\s+TABLE\s+(?!IF\s+NOT\s+EXISTS)/i.test(sql)) {
-      sql = sql.replace(/^CREATE\s+TABLE\s+/i, 'CREATE TABLE IF NOT EXISTS ');
-    }
-
-    // 3. INSERT FIX: INSERT INTO -> INSERT OR REPLACE
-    if (/^INSERT\s+INTO/i.test(sql) && !/INSERT\s+OR\s+REPLACE/i.test(sql)) {
-      sql = sql.replace(/^INSERT\s+INTO/i, 'INSERT OR REPLACE INTO');
-    }
-
-    try {
-      const words = sql.split(/\s+/);
-      const firstWord = words[0] ? words[0].toUpperCase() : '';
-      const secondWord = words[1] ? words[1].toUpperCase() : '';
-
-      if (firstWord === 'SELECT' || firstWord === 'EXPLAIN' || firstWord === 'WITH') {
-        const queryResult = db.exec(sql);
-        if (queryResult.length > 0) {
-          finalResult = {
-            columns: queryResult[0].columns,
-            rows: queryResult[0].values,
-          };
-        } else {
-          finalResult = { columns: [], rows: [] };
-        }
-      } else {
-        db.run(sql);
-
-        // Comprehensive Output Messages for ALL SQL Operations
-        let message = '✅ Query executed successfully!';
-
-        if (firstWord === 'CREATE') {
-          if (secondWord === 'TABLE') message = '✅ Table created successfully!';
-          else if (secondWord === 'INDEX') message = '✅ Index created successfully!';
-          else if (secondWord === 'VIEW') message = '✅ View created successfully!';
-          else message = '✅ Object created successfully!';
-        } else if (firstWord === 'DROP') {
-          if (secondWord === 'TABLE') message = '✅ Table dropped successfully!';
-          else if (secondWord === 'INDEX') message = '✅ Index dropped successfully!';
-          else if (secondWord === 'VIEW') message = '✅ View dropped successfully!';
-          else message = '✅ Object dropped successfully!';
-        } else if (firstWord === 'INSERT') {
-          message = '✅ Data inserted successfully!';
-        } else if (firstWord === 'UPDATE') {
-          message = '✅ Record(s) updated successfully!';
-        } else if (firstWord === 'DELETE') {
-          message = '✅ Record(s) deleted successfully!';
-        } else if (firstWord === 'TRUNCATE') {
-          message = '✅ Table truncated successfully!';
-        } else if (firstWord === 'ALTER') {
-          message = '✅ Table structure altered successfully!';
-        } else if (firstWord === 'RENAME') {
-          message = '✅ Renamed successfully!';
-        } else if (firstWord === 'BEGIN' || firstWord === 'START') {
-          message = '✅ Transaction started!';
-        } else if (firstWord === 'COMMIT') {
-          message = '✅ Transaction committed successfully!';
-        } else if (firstWord === 'ROLLBACK') {
-          message = '✅ Transaction rolled back!';
-        } else if (firstWord === 'PRAGMA') {
-          message = '✅ Pragma configuration applied!';
-        } else if (firstWord === 'VACUUM') {
-          message = '✅ Database vacuumed successfully!';
-        } else if (firstWord === 'GRANT' || firstWord === 'REVOKE') {
-          message = '✅ Permission updated successfully!';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Practice Engine</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0b1329;
+            --panel-bg: #111c38;
+            --border-color: #1e2d54;
+            --accent-blue: #0088ff;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
         }
 
-        finalResult = { message: message };
-      }
-    } catch (err) {
-      errorOccurred = err.message;
-      break;
-    }
-  }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-  if (errorOccurred) {
-    res.json({ error: errorOccurred });
-  } else {
-    res.json(finalResult || { message: '✅ Query executed successfully!' });
-  }
-});
+        .navbar { height: 50px; background: #080f21; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .nav-brand { font-weight: bold; color: #38bdf8; font-size: 16px; }
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+        .auth-container { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        .google-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .user-profile { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #38bdf8; }
+        .btn-logout { background: transparent; color: #ef4444; border: none; font-size: 11px; cursor: pointer; text-decoration: underline; margin-left: 5px; }
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+        .sub-bar { height: 34px; background: #0e172e; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; font-size: 12px; color: var(--text-muted); }
+        .tag { background: #1e293b; padding: 2px 8px; border-radius: 4px; color: #38bdf8; }
+
+        .main-layout { flex: 1; display: flex; overflow: hidden; }
+
+        .sidebar-left { width: 240px; background: var(--panel-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-title { padding: 12px 16px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+        .table-list { padding: 10px; overflow-y: auto; flex: 1; }
+        .table-item { padding: 8px 12px; background: #0b1329; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-family: monospace; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+
+        .workspace-center { flex: 1; display: flex; flex-direction: column; }
+        .editor-toolbar { height: 40px; background: #0d162d; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; }
+        .btn-group { display: flex; gap: 8px; }
+        .action-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .btn-run { background: var(--accent-blue); border-color: var(--accent-blue); font-weight: bold; }
+
+        /* Perfect Code Editor Container */
+        .editor-box { height: 50%; background: #070c1a; display: flex; position: relative; overflow: hidden; }
+        .line-numbers { min-width: 45px; background: #0a1124; padding: 12px 8px; color: #475569; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; text-align: right; border-right: 1px solid var(--border-color); user-select: none; overflow: hidden; white-space: pre-wrap; }
+        textarea { flex: 1; background: transparent; color: #f8fafc; border: none; outline: none; padding: 12px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; resize: none; overflow-y: auto; white-space: pre; }
+
+        .output-box { flex: 1; background: #0b1329; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .output-header { height: 32px; background: #0e172e; padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .output-content { flex: 1; padding: 12px; overflow: auto; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; background: #0b1329; border-radius: 4px; }
+        th { background: #1b2a4e; color: #f8fafc; text-align: left; padding: 8px; border: 1px solid var(--border-color); font-weight: 600; }
+        td { border: 1px solid var(--border-color); padding: 6px 8px; color: #cbd5e1; font-family: monospace; }
+        .status-msg { padding: 12px; border-radius: 6px; font-size: 13px; font-family: monospace; font-weight: bold; }
+        .status-success { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
+        .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="nav-brand">🌐 SQL Practice Engine</div>
+        <div class="auth-container" id="authContainer">
+            <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+        </div>
+    </div>
+
+    <div class="sub-bar">
+        <span>Engine Status: <span class="tag">Active & Ready</span></span>
+    </div>
+
+    <div class="main-layout">
+        <div class="sidebar-left">
+            <div class="sidebar-title">📁 Database Tables</div>
+            <div class="table-list" id="tablesList"></div>
+        </div>
+
+        <div class="workspace-center">
+            <div class="editor-toolbar">
+                <div class="btn-group">
+                    <button class="action-btn btn-run" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
+                    <button class="action-btn" onclick="clearEditor()">🧹 Clear</button>
+                </div>
+            </div>
+
+            <div class="editor-box">
+                <div class="line-numbers" id="lineNumbers">1</div>
+                <textarea id="sqlInput" spellcheck="false" placeholder="Write any SQL query..." oninput="updateLineNumbers()" onscroll="syncScroll()" onkeyup="updateLineNumbers()"></textarea>
+            </div>
+
+            <div class="output-box">
+                <div class="output-header">📊 Query Output & Execution Log</div>
+                <div class="output-content" id="outputArea">
+                    <span style="color: var(--text-muted); font-size: 13px;">Write a query and click <b>Run</b>.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Backend Render Server URL
+        const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
+            authDomain: "online-compiler-37671.firebaseapp.com",
+            projectId: "online-compiler-37671",
+            storageBucket: "online-compiler-37671.firebasestorage.app",
+            messagingSenderId: "870547958791",
+            appId: "1:870547958791:web:310fa0b819440bfcd30ea2"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
+        }
+
+        auth.onAuthStateChanged(user => {
+            const container = document.getElementById('authContainer');
+            if (user) {
+                container.innerHTML = `
+                    <div class="user-profile">
+                        <img src="${user.photoURL}" class="user-avatar">
+                        <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
+                        <button class="btn-logout" onclick="auth.signOut()">Logout</button>
+                    </div>`;
+            } else {
+                container.innerHTML = `<button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
+            }
+        });
+
+        // Dynamic Line Number Fix
+        function updateLineNumbers() {
+            const textarea = document.getElementById('sqlInput');
+            const lineNumbers = document.getElementById('lineNumbers');
+            const lines = textarea.value.split('\n');
+            const lineCount = lines.length;
+            
+            let lineHTML = '';
+            for (let i = 1; i <= lineCount; i++) {
+                lineHTML += i + '\n';
+            }
+            lineNumbers.textContent = lineHTML;
+        }
+
+        function syncScroll() {
+            const textarea = document.getElementById('sqlInput');
+            const lineNumbers = document.getElementById('lineNumbers');
+            lineNumbers.scrollTop = textarea.scrollTop;
+        }
+
+        async function fetchTables() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/tables`);
+                const tables = await response.json();
+                const tablesListDiv = document.getElementById('tablesList');
+                if (tables && tables.length > 0) {
+                    let html = '';
+                    tables.forEach(t => {
+                        html += `<div class="table-item" onclick="loadTableQuery('${t.name}')"><span>> ${t.name}</span></div>`;
+                    });
+                    tablesListDiv.innerHTML = html;
+                } else {
+                    tablesListDiv.innerHTML = '<span style="color: #64748b; font-size: 12px; padding: 10px;">No tables found.</span>';
+                }
+            } catch (err) {}
+        }
+
+        function loadTableQuery(tableName) {
+            document.getElementById('sqlInput').value = `SELECT * FROM ${tableName};`;
+            updateLineNumbers();
+            executeSQL();
+        }
+
+        function clearEditor() {
+            document.getElementById('sqlInput').value = '';
+            updateLineNumbers();
+            document.getElementById('outputArea').innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
+        }
+
+        async function executeSQL() {
+            const query = document.getElementById('sqlInput').value.trim();
+            const outputArea = document.getElementById('outputArea');
+
+            if (!query) {
+                outputArea.innerHTML = `<div class="status-msg status-error">❌ Query Error: Please write a query first.</div>`;
+                return;
+            }
+
+            outputArea.innerHTML = `<span style="color: var(--text-muted);">Executing query...</span>`;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    outputArea.innerHTML = `<div class="status-msg status-error">❌ ${data.error}</div>`;
+                    return;
+                }
+
+                if (data.columns && data.rows && data.rows.length > 0) {
+                    let tableHTML = `<table><thead><tr>`;
+                    data.columns.forEach(col => tableHTML += `<th>${col}</th>`);
+                    tableHTML += `</tr></thead><tbody>`;
+                    data.rows.forEach(row => {
+                        tableHTML += `<tr>`;
+                        row.forEach(cell => tableHTML += `<td>${cell !== null ? cell : 'NULL'}</td>`);
+                        tableHTML += `</tr>`;
+                    });
+                    tableHTML += `</tbody></table>`;
+                    outputArea.innerHTML = tableHTML;
+                } else {
+                    outputArea.innerHTML = `<div class="status-msg status-success">${data.message || '✅ Query Executed Successfully!'}</div>`;
+                }
+
+                fetchTables();
+            } catch (err) {
+                outputArea.innerHTML = `<div class="status-msg status-error">❌ Server Error: Engine not responding.</div>`;
+            }
+        }
+
+        document.getElementById('sqlInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') executeSQL();
+        });
+
+        updateLineNumbers();
+        fetchTables();
+    </script>
+</body>
+</html>
