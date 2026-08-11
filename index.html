@@ -36,7 +36,7 @@
         .navbar { height: 50px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
         .nav-brand { font-weight: bold; color: #38bdf8; font-size: 16px; }
 
-        .auth-container { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        .nav-right-section { display: flex; align-items: center; gap: 12px; margin-left: auto; }
         
         /* Simple Pure White Theme Toggle Button */
         .theme-toggle-btn {
@@ -57,6 +57,7 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        .auth-container { display: flex; align-items: center; gap: 10px; }
         .google-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .user-profile { display: flex; align-items: center; gap: 8px; font-size: 12px; }
         .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #38bdf8; }
@@ -113,12 +114,14 @@
 
     <div class="navbar">
         <div class="nav-brand">🌐 SQL Practice Engine</div>
-        <div class="auth-container" id="authContainer">
-            <!-- Simple Pure White Theme Button (Google Sign In ke Left Side) -->
+        <div class="nav-right-section">
+            <!-- Independent Pure White Theme Button -->
             <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
                 <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
             </button>
-            <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+            <div class="auth-container" id="authContainer">
+                <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+            </div>
         </div>
     </div>
 
@@ -154,7 +157,7 @@
         </div>
     </div>
 
-    <!-- AI Assistant Floating Chatbot (Right Bottom Corner) -->
+    <!-- AI Assistant Floating Chatbot -->
     <div class="ai-chat-wrapper">
         <button class="ai-trigger-btn" onclick="toggleAIChat()">🤖</button>
         <div class="ai-chat-box" id="aiChatBox">
@@ -173,7 +176,6 @@
     </div>
 
     <script>
-        // Backend Render Server URL
         const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
 
         const firebaseConfig = {
@@ -197,34 +199,30 @@
             const container = document.getElementById('authContainer');
             if (user) {
                 container.innerHTML = `
-                    <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
-                        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
-                    </button>
                     <div class="user-profile">
                         <img src="${user.photoURL}" class="user-avatar">
                         <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
                         <button class="btn-logout" onclick="auth.signOut()">Logout</button>
                     </div>`;
             } else {
-                container.innerHTML = `
-                    <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
-                        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
-                    </button>
-                    <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
+                container.innerHTML = `<button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
             }
         });
 
         // Toggle Theme Logic
         function toggleTheme() {
             const currentTheme = document.body.getAttribute('data-theme');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
             if (currentTheme === 'light') {
                 document.body.removeAttribute('data-theme');
-                document.getElementById('themeIcon').innerText = '🌙';
-                document.getElementById('themeText').innerText = 'Dark';
+                if (themeIcon) themeIcon.innerText = '🌙';
+                if (themeText) themeText.innerText = 'Dark';
             } else {
                 document.body.setAttribute('data-theme', 'light');
-                document.getElementById('themeIcon').innerText = '☀️';
-                document.getElementById('themeText').innerText = 'Light';
+                if (themeIcon) themeIcon.innerText = '☀️';
+                if (themeText) themeText.innerText = 'Light';
             }
         }
 
@@ -274,7 +272,7 @@
             }, 400);
         }
 
-        // Dynamic Line Number Fix
+        // Dynamic Line Number
         function updateLineNumbers() {
             const textarea = document.getElementById('sqlInput');
             const lineNumbers = document.getElementById('lineNumbers');
@@ -354,4 +352,10 @@
                     tableHTML += `</tr></thead><tbody>`;
                     data.rows.forEach(row => {
                         tableHTML += `<tr>`;
-                        row.forEach(cell => tableHTML += `<td>${cell !== null ? cell : '
+                        row.forEach(cell => tableHTML += `<td>${cell !== null ? cell : 'NULL'}</td>`);
+                        tableHTML += `</tr>`;
+                    });
+                    tableHTML += `</tbody></table>`;
+                    outputArea.innerHTML = tableHTML;
+                } else {
+                    outputArea.innerHTML = `<div class="status-msg
