@@ -6,7 +6,6 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS block hatane ke liye middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -42,7 +41,6 @@ app.post('/api/query', (req, res) => {
   let { query } = req.body;
   if (!query) return res.status(400).json({ error: 'No query provided' });
 
-  // Semicolon se queries split karein
   const queries = query.split(';').filter((q) => q.trim().length > 0);
   let finalResult = null;
   let errorOccurred = null;
@@ -55,20 +53,22 @@ app.post('/api/query', (req, res) => {
       sql = sql.replace(/TRUNCATE\s+TABLE/i, 'DELETE FROM');
     }
 
-    // 2. CREATE TABLE FIX: Auto-append IF NOT EXISTS (Table Existing Error Fix)
+    // 2. CREATE TABLE FIX: Auto-append IF NOT EXISTS
     if (/^CREATE\s+TABLE\s+(?!IF\s+NOT\s+EXISTS)/i.test(sql)) {
       sql = sql.replace(/^CREATE\s+TABLE\s+/i, 'CREATE TABLE IF NOT EXISTS ');
     }
 
-    // 3. INSERT FIX: INSERT INTO -> INSERT OR REPLACE (Unique Constraint Error Fix)
+    // 3. INSERT FIX: INSERT INTO -> INSERT OR REPLACE
     if (/^INSERT\s+INTO/i.test(sql) && !/INSERT\s+OR\s+REPLACE/i.test(sql)) {
       sql = sql.replace(/^INSERT\s+INTO/i, 'INSERT OR REPLACE INTO');
     }
 
     try {
-      const firstWord = sql.split(' ')[0].toUpperCase();
+      const words = sql.split(/\s+/);
+      const firstWord = words[0] ? words[0].toUpperCase() : '';
+      const secondWord = words[1] ? words[1].toUpperCase() : '';
 
-      if (firstWord === 'SELECT') {
+      if (firstWord === 'SELECT' || firstWord === 'EXPLAIN' || firstWord === 'WITH') {
         const queryResult = db.exec(sql);
         if (queryResult.length > 0) {
           finalResult = {
@@ -80,9 +80,47 @@ app.post('/api/query', (req, res) => {
         }
       } else {
         db.run(sql);
-        if (!finalResult) {
-          finalResult = { message: `✅ Queries Executed Successfully!` };
+
+        // Comprehensive Output Messages for ALL SQL Operations
+        let message = '✅ Query executed successfully!';
+
+        if (firstWord === 'CREATE') {
+          if (secondWord === 'TABLE') message = '✅ Table created successfully!';
+          else if (secondWord === 'INDEX') message = '✅ Index created successfully!';
+          else if (secondWord === 'VIEW') message = '✅ View created successfully!';
+          else message = '✅ Object created successfully!';
+        } else if (firstWord === 'DROP') {
+          if (secondWord === 'TABLE') message = '✅ Table dropped successfully!';
+          else if (secondWord === 'INDEX') message = '✅ Index dropped successfully!';
+          else if (secondWord === 'VIEW') message = '✅ View dropped successfully!';
+          else message = '✅ Object dropped successfully!';
+        } else if (firstWord === 'INSERT') {
+          message = '✅ Data inserted successfully!';
+        } else if (firstWord === 'UPDATE') {
+          message = '✅ Record(s) updated successfully!';
+        } else if (firstWord === 'DELETE') {
+          message = '✅ Record(s) deleted successfully!';
+        } else if (firstWord === 'TRUNCATE') {
+          message = '✅ Table truncated successfully!';
+        } else if (firstWord === 'ALTER') {
+          message = '✅ Table structure altered successfully!';
+        } else if (firstWord === 'RENAME') {
+          message = '✅ Renamed successfully!';
+        } else if (firstWord === 'BEGIN' || firstWord === 'START') {
+          message = '✅ Transaction started!';
+        } else if (firstWord === 'COMMIT') {
+          message = '✅ Transaction committed successfully!';
+        } else if (firstWord === 'ROLLBACK') {
+          message = '✅ Transaction rolled back!';
+        } else if (firstWord === 'PRAGMA') {
+          message = '✅ Pragma configuration applied!';
+        } else if (firstWord === 'VACUUM') {
+          message = '✅ Database vacuumed successfully!';
+        } else if (firstWord === 'GRANT' || firstWord === 'REVOKE') {
+          message = '✅ Permission updated successfully!';
         }
+
+        finalResult = { message: message };
       }
     } catch (err) {
       errorOccurred = err.message;
@@ -93,7 +131,7 @@ app.post('/api/query', (req, res) => {
   if (errorOccurred) {
     res.json({ error: errorOccurred });
   } else {
-    res.json(finalResult || { message: '✅ Queries Executed Successfully!' });
+    res.json(finalResult || { message: '✅ Query executed successfully!' });
   }
 });
 
