@@ -14,21 +14,53 @@
             --accent-blue: #0088ff;
             --text-main: #e2e8f0;
             --text-muted: #94a3b8;
+            --editor-bg: #070c1a;
+            --line-num-bg: #0a1124;
+        }
+
+        /* Light Theme Mode Variables */
+        [data-theme="light"] {
+            --bg-dark: #f1f5f9;
+            --panel-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --accent-blue: #2563eb;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --editor-bg: #f8fafc;
+            --line-num-bg: #e2e8f0;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; transition: background 0.3s ease, color 0.3s ease; }
 
-        .navbar { height: 50px; background: #080f21; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .navbar { height: 50px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
         .nav-brand { font-weight: bold; color: #38bdf8; font-size: 16px; }
 
-        .auth-container { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        .nav-right-section { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        
+        .theme-toggle-btn {
+            background-color: transparent;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .theme-toggle-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
+
+        .auth-container { display: flex; align-items: center; gap: 10px; }
         .google-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .user-profile { display: flex; align-items: center; gap: 8px; font-size: 12px; }
         .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #38bdf8; }
         .btn-logout { background: transparent; color: #ef4444; border: none; font-size: 11px; cursor: pointer; text-decoration: underline; margin-left: 5px; }
 
-        .sub-bar { height: 34px; background: #0e172e; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; font-size: 12px; color: var(--text-muted); }
+        .sub-bar { height: 34px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; font-size: 12px; color: var(--text-muted); }
         .tag { background: #1e293b; padding: 2px 8px; border-radius: 4px; color: #38bdf8; }
 
         .main-layout { flex: 1; display: flex; overflow: hidden; }
@@ -36,37 +68,55 @@
         .sidebar-left { width: 240px; background: var(--panel-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
         .sidebar-title { padding: 12px 16px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
         .table-list { padding: 10px; overflow-y: auto; flex: 1; }
-        .table-item { padding: 8px 12px; background: #0b1329; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-family: monospace; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+        .table-item { padding: 8px 12px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-family: monospace; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 
         .workspace-center { flex: 1; display: flex; flex-direction: column; }
-        .editor-toolbar { height: 40px; background: #0d162d; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; }
+        .editor-toolbar { height: 40px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; }
         .btn-group { display: flex; gap: 8px; }
         .action-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
         .btn-run { background: var(--accent-blue); border-color: var(--accent-blue); font-weight: bold; }
 
-        /* Perfect Code Editor Container */
-        .editor-box { height: 50%; background: #070c1a; display: flex; position: relative; overflow: hidden; }
-        .line-numbers { min-width: 45px; background: #0a1124; padding: 12px 8px; color: #475569; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; text-align: right; border-right: 1px solid var(--border-color); user-select: none; overflow: hidden; white-space: pre-wrap; }
-        textarea { flex: 1; background: transparent; color: #f8fafc; border: none; outline: none; padding: 12px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; resize: none; overflow-y: auto; white-space: pre; }
+        .editor-box { height: 50%; background: var(--editor-bg); display: flex; position: relative; overflow: hidden; }
+        .line-numbers { min-width: 45px; background: var(--line-num-bg); padding: 12px 8px; color: #475569; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; text-align: right; border-right: 1px solid var(--border-color); user-select: none; overflow: hidden; white-space: pre-wrap; }
+        textarea { flex: 1; background: transparent; color: var(--text-main); border: none; outline: none; padding: 12px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; resize: none; overflow-y: auto; white-space: pre; }
 
-        .output-box { flex: 1; background: #0b1329; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .output-header { height: 32px; background: #0e172e; padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .output-box { flex: 1; background: var(--bg-dark); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .output-header { height: 32px; background: var(--panel-bg); padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
         .output-content { flex: 1; padding: 12px; overflow: auto; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 12px; background: #0b1329; border-radius: 4px; }
-        th { background: #1b2a4e; color: #f8fafc; text-align: left; padding: 8px; border: 1px solid var(--border-color); font-weight: 600; }
-        td { border: 1px solid var(--border-color); padding: 6px 8px; color: #cbd5e1; font-family: monospace; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-dark); border-radius: 4px; }
+        th { background: var(--panel-bg); color: var(--text-main); text-align: left; padding: 8px; border: 1px solid var(--border-color); font-weight: 600; }
+        td { border: 1px solid var(--border-color); padding: 6px 8px; color: var(--text-muted); font-family: monospace; }
         .status-msg { padding: 12px; border-radius: 6px; font-size: 13px; font-family: monospace; font-weight: bold; }
         .status-success { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
         .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; }
+
+        /* Floating AI Assistant */
+        .ai-chat-wrapper { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .ai-trigger-btn { width: 50px; height: 50px; border-radius: 50%; background-color: var(--accent-blue); color: white; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+        
+        .ai-chat-box { display: none; position: fixed; bottom: 80px; right: 20px; width: 340px; height: 440px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow: hidden; }
+        .ai-chat-header { background: var(--accent-blue); color: white; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+        .ai-chat-body { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+        .ai-msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; }
+        .ai-msg.user { background-color: var(--accent-blue); color: white; align-self: flex-end; }
+        .ai-msg.bot { background-color: var(--editor-bg); border: 1px solid var(--border-color); color: var(--text-main); align-self: flex-start; }
+        .ai-chat-footer { padding: 8px; border-top: 1px solid var(--border-color); display: flex; gap: 6px; }
+        .ai-chat-footer input { flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--editor-bg); color: var(--text-main); font-size: 12px; outline: none; }
+        .ai-chat-footer button { padding: 6px 12px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="navbar">
         <div class="nav-brand">🌐 SQL Practice Engine</div>
-        <div class="auth-container" id="authContainer">
-            <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+        <div class="nav-right-section">
+            <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
+                <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+            </button>
+            <div class="auth-container" id="authContainer">
+                <button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+            </div>
         </div>
     </div>
 
@@ -83,8 +133,8 @@
         <div class="workspace-center">
             <div class="editor-toolbar">
                 <div class="btn-group">
-                    <button class="action-btn btn-run" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
-                    <button class="action-btn" onclick="clearEditor()">🧹 Clear</button>
+                    <button class="action-btn btn-run" id="btnRun" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
+                    <button class="action-btn" id="btnClear" onclick="clearEditor()">🧹 Clear</button>
                 </div>
             </div>
 
@@ -102,8 +152,25 @@
         </div>
     </div>
 
+    <!-- AI Assistant Floating Chatbot -->
+    <div class="ai-chat-wrapper">
+        <button class="ai-trigger-btn" onclick="toggleAIChat()">🤖</button>
+        <div class="ai-chat-box" id="aiChatBox">
+            <div class="ai-chat-header">
+                <span>SQL AI Assistant</span>
+                <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
+            </div>
+            <div class="ai-chat-body" id="aiChatBody">
+                <div class="ai-msg bot">Hi! I am your SQL Assistant. Ask me anything about SQL in English, Hindi, or Bengali!</div>
+            </div>
+            <div class="ai-chat-footer">
+                <input type="text" id="aiInput" placeholder="Ask SQL question..." onkeypress="handleAIPress(event)">
+                <button onclick="sendAIMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Backend Render Server URL
         const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
 
         const firebaseConfig = {
@@ -115,37 +182,98 @@
             appId: "1:870547958791:web:310fa0b819440bfcd30ea2"
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
 
-        auth.onAuthStateChanged(user => {
-            const container = document.getElementById('authContainer');
-            if (user) {
-                container.innerHTML = `
-                    <div class="user-profile">
-                        <img src="${user.photoURL}" class="user-avatar">
-                        <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
-                        <button class="btn-logout" onclick="auth.signOut()">Logout</button>
-                    </div>`;
-            } else {
-                container.innerHTML = `<button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
-            }
-        });
+        function signInWithGoogle() {
+            if (typeof firebase === 'undefined') return;
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).catch(() => firebase.auth().signInWithRedirect(provider));
+        }
 
-        // Dynamic Line Number Fix
+        if (typeof firebase !== 'undefined') {
+            firebase.auth().onAuthStateChanged(user => {
+                const container = document.getElementById('authContainer');
+                if (!container) return;
+                if (user) {
+                    container.innerHTML = `
+                        <div class="user-profile">
+                            <img src="${user.photoURL}" class="user-avatar">
+                            <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
+                            <button class="btn-logout" onclick="firebase.auth().signOut()">Logout</button>
+                        </div>`;
+                } else {
+                    container.innerHTML = `<button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
+                }
+            });
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (currentTheme === 'light') {
+                document.body.removeAttribute('data-theme');
+                if (themeIcon) themeIcon.innerText = '🌙';
+                if (themeText) themeText.innerText = 'Dark';
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                if (themeIcon) themeIcon.innerText = '☀️';
+                if (themeText) themeText.innerText = 'Light';
+            }
+        }
+
+        function toggleAIChat() {
+            const chatBox = document.getElementById('aiChatBox');
+            if (chatBox) {
+                chatBox.style.display = (chatBox.style.display === 'flex') ? 'none' : 'flex';
+            }
+        }
+
+        function handleAIPress(e) {
+            if (e.key === 'Enter') sendAIMessage();
+        }
+
+        function getAIResponse(question) {
+            const q = question.toLowerCase();
+            if (q.includes('select')) {
+                return "<b>SELECT:</b> Used to fetch data from database.<br><b>Hindi:</b> Database se data read karne ke liye.<br><b>Bengali:</b> ডাটাবেস থেকে ডেটা পাওয়ার জন্য।";
+            } else if (q.includes('insert')) {
+                return "<b>INSERT:</b> Used to insert new records.<br><b>Hindi:</b> Naya record add karne ke liye.<br><b>Bengali:</b> নতুন ডেটা যোগ করতে।";
+            } else if (q.includes('delete')) {
+                return "<b>DELETE:</b> Removes specific rows.<br><b>Hindi:</b> Rows delete karta hai.<br><b>Bengali:</b> নির্দিষ্ট রো মুছে ফেলে।";
+            } else {
+                return "You can ask me about SELECT, INSERT, UPDATE, DELETE, CREATE, TRUNCATE, or JOINs in English, Hindi, or Bengali!";
+            }
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            const body = document.getElementById('aiChatBody');
+            body.innerHTML += `<div class="ai-msg user">${text}</div>`;
+            input.value = '';
+
+            setTimeout(() => {
+                const reply = getAIResponse(text);
+                body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 300);
+        }
+
         function updateLineNumbers() {
             const textarea = document.getElementById('sqlInput');
             const lineNumbers = document.getElementById('lineNumbers');
+            if (!textarea || !lineNumbers) return;
+
             const lines = textarea.value.split('\n');
-            const lineCount = lines.length;
-            
             let lineHTML = '';
-            for (let i = 1; i <= lineCount; i++) {
+            for (let i = 1; i <= lines.length; i++) {
                 lineHTML += i + '\n';
             }
             lineNumbers.textContent = lineHTML;
@@ -154,7 +282,9 @@
         function syncScroll() {
             const textarea = document.getElementById('sqlInput');
             const lineNumbers = document.getElementById('lineNumbers');
-            lineNumbers.scrollTop = textarea.scrollTop;
+            if (textarea && lineNumbers) {
+                lineNumbers.scrollTop = textarea.scrollTop;
+            }
         }
 
         async function fetchTables() {
@@ -162,34 +292,41 @@
                 const response = await fetch(`${BACKEND_URL}/api/tables`);
                 const tables = await response.json();
                 const tablesListDiv = document.getElementById('tablesList');
-                if (tables && tables.length > 0) {
+                if (tablesListDiv && tables && tables.length > 0) {
                     let html = '';
                     tables.forEach(t => {
                         html += `<div class="table-item" onclick="loadTableQuery('${t.name}')"><span>> ${t.name}</span></div>`;
                     });
                     tablesListDiv.innerHTML = html;
-                } else {
-                    tablesListDiv.innerHTML = '<span style="color: #64748b; font-size: 12px; padding: 10px;">No tables found.</span>';
                 }
             } catch (err) {}
         }
 
         function loadTableQuery(tableName) {
-            document.getElementById('sqlInput').value = `SELECT * FROM ${tableName};`;
-            updateLineNumbers();
-            executeSQL();
+            const sqlInput = document.getElementById('sqlInput');
+            if (sqlInput) {
+                sqlInput.value = `SELECT * FROM ${tableName};`;
+                updateLineNumbers();
+                executeSQL();
+            }
         }
 
         function clearEditor() {
-            document.getElementById('sqlInput').value = '';
+            const sqlInput = document.getElementById('sqlInput');
+            const outputArea = document.getElementById('outputArea');
+            if (sqlInput) sqlInput.value = '';
             updateLineNumbers();
-            document.getElementById('outputArea').innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
+            if (outputArea) {
+                outputArea.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
+            }
         }
 
         async function executeSQL() {
-            const query = document.getElementById('sqlInput').value.trim();
+            const sqlInput = document.getElementById('sqlInput');
             const outputArea = document.getElementById('outputArea');
+            if (!sqlInput || !outputArea) return;
 
+            const query = sqlInput.value.trim();
             if (!query) {
                 outputArea.innerHTML = `<div class="status-msg status-error">❌ Query Error: Please write a query first.</div>`;
                 return;
@@ -232,12 +369,11 @@
             }
         }
 
-        document.getElementById('sqlInput').addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'Enter') executeSQL();
-        });
-
-        updateLineNumbers();
-        fetchTables();
-    </script>
-</body>
-</html>
+        document.addEventListener("DOMContentLoaded", function() {
+            const sqlInput = document.getElementById('sqlInput');
+            if (sqlInput) {
+                sqlInput.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && e.key === 'Enter') executeSQL();
+                });
+            }
+            updateLineNumbers();
