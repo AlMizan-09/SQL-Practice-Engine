@@ -155,47 +155,56 @@
     </div>
 
     <script>
-        const BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
+        window.BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
-            authDomain: "online-compiler-37671.firebaseapp.com",
-            projectId: "online-compiler-37671",
-            storageBucket: "online-compiler-37671.firebasestorage.app",
-            messagingSenderId: "870547958791",
-            appId: "1:870547958791:web:310fa0b819440bfcd30ea2"
+        window.updateLineNumbers = function() {
+            var textarea = document.getElementById('sqlInput');
+            var lineNumbers = document.getElementById('lineNumbers');
+            if (!textarea || !lineNumbers) return;
+            var lines = textarea.value.split('\n');
+            var lineHTML = '';
+            for (var i = 1; i <= lines.length; i++) {
+                lineHTML += i + '\n';
+            }
+            lineNumbers.textContent = lineHTML;
         };
 
-        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        window.syncScroll = function() {
+            var textarea = document.getElementById('sqlInput');
+            var lineNumbers = document.getElementById('lineNumbers');
+            if (textarea && lineNumbers) {
+                lineNumbers.scrollTop = textarea.scrollTop;
+            }
+        };
 
-        function toggleTheme() {
-            const body = document.body;
-            const themeBtn = document.getElementById('themeBtn');
+        window.toggleTheme = function() {
+            var body = document.body;
+            var themeBtn = document.getElementById('themeBtn');
             body.classList.toggle('light-theme');
             if (themeBtn) {
                 themeBtn.textContent = body.classList.contains('light-theme') ? '☀️' : '🌙';
             }
-        }
+        };
 
-        function toggleAIChat() {
-            const chatBox = document.getElementById('aiChatBox');
-            chatBox.style.display = (chatBox.style.display === 'flex') ? 'none' : 'flex';
-        }
+        window.toggleAIChat = function() {
+            var chatBox = document.getElementById('aiChatBox');
+            if (chatBox) {
+                chatBox.style.display = (chatBox.style.display === 'flex') ? 'none' : 'flex';
+            }
+        };
 
-        function sendAIMessage() {
-            const input = document.getElementById('aiInput');
-            const chatBody = document.getElementById('aiChatBody');
-            const query = input.value.trim().toLowerCase();
-
+        window.sendAIMessage = function() {
+            var input = document.getElementById('aiInput');
+            var chatBody = document.getElementById('aiChatBody');
+            if (!input || !chatBody) return;
+            
+            var query = input.value.trim().toLowerCase();
             if (!query) return;
 
-            chatBody.innerHTML += `<div class="ai-msg ai-msg-user">${input.value}</div>`;
+            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + input.value + '</div>';
             input.value = '';
 
-            let response = "";
-
+            var response = "";
             if (query.includes("select")) {
                 response = "<b>SELECT</b> statement is used to fetch data from a database.<br><br><b>Hindi:</b> Table se data nikalne ke liye SELECT ka use hota hai.<br><br><b>Bengali:</b> টেবিল থেকে ডেটা তোলার জন্য SELECT ব্যবহার করা হয়।";
             } else if (query.includes("insert")) {
@@ -212,70 +221,82 @@
                 response = "Ask me any SQL command like SELECT, INSERT, UPDATE, DELETE, WHERE, or JOIN! (Supported: English, Hindi, Bengali)";
             }
 
-            setTimeout(() => {
-                chatBody.innerHTML += `<div class="ai-msg ai-msg-bot">${response}</div>`;
+            setTimeout(function() {
+                chatBody.innerHTML += '<div class="ai-msg ai-msg-bot">' + response + '</div>';
                 chatBody.scrollTop = chatBody.scrollHeight;
             }, 300);
 
             chatBody.scrollTop = chatBody.scrollHeight;
-        }
+        };
 
-        function signInWithGoogle() {
-            if (typeof firebase !== 'undefined' && firebase.auth) {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                firebase.auth().signInWithPopup(provider).catch(() => firebase.auth().signInWithRedirect(provider));
+        window.clearEditor = function() {
+            var textarea = document.getElementById('sqlInput');
+            if (textarea) textarea.value = '';
+            window.updateLineNumbers();
+            var outputArea = document.getElementById('outputArea');
+            if (outputArea) {
+                outputArea.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
             }
-        }
+        };
 
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().onAuthStateChanged(user => {
-                const container = document.getElementById('authContainer');
-                const isLight = document.body.classList.contains('light-theme');
-                const themeBtnHTML = `<button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">${isLight ? '☀️' : '🌙'}</button>`;
-                
-                if (user) {
-                    container.innerHTML = themeBtnHTML + `
-                        <div class="user-profile">
-                            <img src="${user.photoURL}" class="user-avatar">
-                            <span>${user.displayName ? user.displayName.split(' ')[0] : 'User'}</span>
-                            <button class="btn-logout" onclick="firebase.auth().signOut()">Logout</button>
-                        </div>`;
-                } else {
-                    container.innerHTML = themeBtnHTML + `<button class="google-btn" onclick="signInWithGoogle()">Sign in with Google</button>`;
-                }
-            });
-        }
+        window.executeSQL = async function() {
+            var textarea = document.getElementById('sqlInput');
+            var outputArea = document.getElementById('outputArea');
+            if (!textarea || !outputArea) return;
 
-        function updateLineNumbers() {
-            const textarea = document.getElementById('sqlInput');
-            const lineNumbers = document.getElementById('lineNumbers');
-            if (!textarea || !lineNumbers) return;
-            const lines = textarea.value.split('\n');
-            let lineHTML = '';
-            for (let i = 1; i <= lines.length; i++) {
-                lineHTML += i + '\n';
+            var query = textarea.value.trim();
+            if (!query) {
+                outputArea.innerHTML = '<div class="status-msg status-error">❌ Query Error: Please write a query first.</div>';
+                return;
             }
-            lineNumbers.textContent = lineHTML;
-        }
 
-        function syncScroll() {
-            const textarea = document.getElementById('sqlInput');
-            const lineNumbers = document.getElementById('lineNumbers');
-            if (textarea && lineNumbers) {
-                lineNumbers.scrollTop = textarea.scrollTop;
-            }
-        }
+            outputArea.innerHTML = '<span style="color: var(--text-muted);">Executing query...</span>';
 
-        async function fetchTables() {
             try {
-                const response = await fetch(`${BACKEND_URL}/api/tables`);
-                const tables = await response.json();
-                const tablesListDiv = document.getElementById('tablesList');
+                var response = await fetch(window.BACKEND_URL + '/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                var data = await response.json();
+
+                if (data.error) {
+                    outputArea.innerHTML = '<div class="status-msg status-error">❌ ' + data.error + '</div>';
+                    return;
+                }
+
+                if (data.columns && data.rows && data.rows.length > 0) {
+                    var tableHTML = '<table><thead><tr>';
+                    data.columns.forEach(function(col) { tableHTML += '<th>' + col + '</th>'; });
+                    tableHTML += '</tr></thead><tbody>';
+                    data.rows.forEach(function(row) {
+                        tableHTML += '<tr>';
+                        row.forEach(function(cell) { tableHTML += '<td>' + (cell !== null ? cell : 'NULL') + '</td>'; });
+                        tableHTML += '</tr>';
+                    });
+                    tableHTML += '</tbody></table>';
+                    outputArea.innerHTML = tableHTML;
+                } else {
+                    outputArea.innerHTML = '<div class="status-msg status-success">' + (data.message || '✅ Query Executed Successfully!') + '</div>';
+                }
+
+                window.fetchTables();
+            } catch (err) {
+                outputArea.innerHTML = '<div class="status-msg status-error">❌ Server Error: Engine not responding.</div>';
+            }
+        };
+
+        window.fetchTables = async function() {
+            try {
+                var response = await fetch(window.BACKEND_URL + '/api/tables');
+                var tables = await response.json();
+                var tablesListDiv = document.getElementById('tablesList');
                 if (tablesListDiv) {
                     if (tables && tables.length > 0) {
-                        let html = '';
-                        tables.forEach(t => {
-                            html += `<div class="table-item" onclick="loadTableQuery('${t.name}')"><span>> ${t.name}</span></div>`;
+                        var html = '';
+                        tables.forEach(function(t) {
+                            html += '<div class="table-item" onclick="loadTableQuery(\'' + t.name + '\')"><span>> ' + t.name + '</span></div>';
                         });
                         tablesListDiv.innerHTML = html;
                     } else {
@@ -283,61 +304,41 @@
                     }
                 }
             } catch (err) {}
-        }
+        };
 
-        function loadTableQuery(tableName) {
-            const textarea = document.getElementById('sqlInput');
+        window.loadTableQuery = function(tableName) {
+            var textarea = document.getElementById('sqlInput');
             if (textarea) {
-                textarea.value = `SELECT * FROM ${tableName};`;
-                updateLineNumbers();
-                executeSQL();
+                textarea.value = 'SELECT * FROM ' + tableName + ';';
+                window.updateLineNumbers();
+                window.executeSQL();
             }
-        }
+        };
 
-        function clearEditor() {
-            const textarea = document.getElementById('sqlInput');
-            if (textarea) textarea.value = '';
-            updateLineNumbers();
-            const outputArea = document.getElementById('outputArea');
-            if (outputArea) {
-                outputArea.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Editor cleared.</span>';
-            }
-        }
+        // Firebase Initialization Safely
+        try {
+            var firebaseConfig = {
+                apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
+                authDomain: "online-compiler-37671.firebaseapp.com",
+                projectId: "online-compiler-37671",
+                storageBucket: "online-compiler-37671.firebasestorage.app",
+                messagingSenderId: "870547958791",
+                appId: "1:870547958791:web:310fa0b819440bfcd30ea2"
+            };
 
-        async function executeSQL() {
-            const textarea = document.getElementById('sqlInput');
-            const outputArea = document.getElementById('outputArea');
-            if (!textarea || !outputArea) return;
-
-            const query = textarea.value.trim();
-
-            if (!query) {
-                outputArea.innerHTML = `<div class="status-msg status-error">❌ Query Error: Please write a query first.</div>`;
-                return;
+            if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
             }
 
-            outputArea.innerHTML = `<span style="color: var(--text-muted);">Executing query...</span>`;
-
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/query`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    outputArea.innerHTML = `<div class="status-msg status-error">❌ ${data.error}</div>`;
-                    return;
-                }
-
-                if (data.columns && data.rows && data.rows.length > 0) {
-                    let tableHTML = `<table><thead><tr>`;
-                    data.columns.forEach(col => tableHTML += `<th>${col}</th>`);
-                    tableHTML += `</tr></thead><tbody>`;
-                    data.rows.forEach(row => {
-                        tableHTML += `<tr>`;
-                        row.forEach(cell => tableHTML += `<td>${cell !== null ? cell : 'NULL'}</td>`);
-                        tableHTML += `</tr>`;
+            window.signInWithGoogle = function() {
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    var provider = new firebase.auth.GoogleAuthProvider();
+                    firebase.auth().signInWithPopup(provider).catch(function() {
+                        firebase.auth().signInWithRedirect(provider);
                     });
+                }
+            };
+
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().onAuthStateChanged(function(user) {
+                    var container = document.getEleme
