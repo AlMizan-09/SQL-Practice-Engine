@@ -144,7 +144,7 @@
             </div>
             <div class="ai-chat-body" id="aiChatBody">
                 <div class="ai-msg ai-msg-bot">
-                    Hello! I am your SQL Assistant. Ask me anything about SQL queries in <b>English</b>, <b>Hindi</b>, or <b>Bengali</b>!
+                    I’m your SQL Assistant, here to help you solve SQL problems, write queries, and understand database concepts.
                 </div>
             </div>
             <div class="ai-chat-footer">
@@ -193,36 +193,85 @@
             }
         };
 
+        function detectLanguage(text) {
+            var bnRegex = /[\u0980-\u09FF]/;
+            if (bnRegex.test(text)) return "bn";
+            
+            var textLower = text.toLowerCase();
+            var hinglishWords = ["kya", "kaise", "kab", "kahan", "kaise", "karo", "batao", "banao", "raha", "saka", "ko", "ka", "me", "se", "hai", "hota"];
+            var words = textLower.split(/\s+/);
+            for (var i = 0; i < words.length; i++) {
+                if (hinglishWords.indexOf(words[i]) !== -1) return "hi";
+            }
+            return "en";
+        }
+
         window.sendAIMessage = function() {
             var input = document.getElementById('aiInput');
             var chatBody = document.getElementById('aiChatBody');
             if (!input || !chatBody) return;
             
-            var query = input.value.trim().toLowerCase();
-            if (!query) return;
+            var rawText = input.value.trim();
+            if (!rawText) return;
 
-            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + input.value + '</div>';
+            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + rawText + '</div>';
             input.value = '';
 
-            var response = "";
-            if (query.includes("select")) {
-                response = "<b>SELECT</b> statement is used to fetch data from a database.<br><br><b>Hindi:</b> Table se data nikalne ke liye SELECT ka use hota hai.<br><br><b>Bengali:</b> টেবিল থেকে ডেটা তোলার জন্য SELECT ব্যবহার করা হয়।";
-            } else if (query.includes("insert")) {
-                response = "<b>INSERT INTO</b> is used to add new rows.<br><br><b>Hindi:</b> Naya data ya row add karne ke liye INSERT INTO ka use karte hain.<br><br><b>Bengali:</b> নতুন ডেটা যোগ করার জন্য INSERT INTO ব্যবহার করা হয়।";
-            } else if (query.includes("update")) {
-                response = "<b>UPDATE</b> modifies existing data.<br><br><b>Hindi:</b> Purana data change karne ke liye UPDATE ka upyog hota hai.<br><br><b>Bengali:</b> ডেটা পরিবর্তন করতে UPDATE ব্যবহার হয়।";
-            } else if (query.includes("delete")) {
-                response = "<b>DELETE</b> removes rows from a table.<br><br><b>Hindi:</b> Data delete karne ke liye kaam aata hai.<br><br><b>Bengali:</b> টেবিল থেকে ডেটা মুছে ফেলার জন্য DELETE ব্যবহার করা হয়।";
-            } else if (query.includes("where")) {
-                response = "<b>WHERE</b> clause filters records.<br><br><b>Hindi:</b> Specific data filter karne ke liye WHERE ka use hota hai.<br><br><b>Bengali:</b> নির্দিষ্ট ডেটা পেতে WHERE ব্যবহার করা হয়।";
-            } else if (query.includes("join")) {
-                response = "<b>JOIN</b> combines rows from two or more tables.<br><br><b>Hindi:</b> Do tables ko jod kar data nikalne ke liye JOIN ka use karte hain.<br><br><b>Bengali:</b> দুটো টেবিল যুক্ত করতে JOIN ব্যবহার করা হয়।";
+            var lang = detectLanguage(rawText);
+            var q = rawText.toLowerCase();
+
+            var resp = { en: "", hi: "", bn: "" };
+
+            if (q.includes("alter")) {
+                resp.en = "<b>ALTER</b> command modifies table structure (e.g., ADD, DROP, or MODIFY columns).<br><code>ALTER TABLE users ADD age INT;</code>";
+                resp.hi = "<b>ALTER</b> command se hum kisi existing table ka structure change karte hain, jaise naya column add karna.";
+                resp.bn = "<b>ALTER</b> কমান্ড দিয়ে বিদ্যমান টেবিলের কাঠামো যেমন নতুন কলাম যোগ বা সংশোধন করা হয়।";
+            } else if (q.includes("select")) {
+                resp.en = "<b>SELECT</b> statement fetches data from a database table.<br><code>SELECT * FROM users;</code>";
+                resp.hi = "<b>SELECT</b> ka upyog table se data retrieve ya nikalne ke liye hota hai.";
+                resp.bn = "<b>SELECT</b> স্টেটমেন্ট দিয়ে ডাটাবেস টেবিল থেকে ডাটা রিট্রিভ করা হয়।";
+            } else if (q.includes("insert")) {
+                resp.en = "<b>INSERT INTO</b> adds new rows into a table.<br><code>INSERT INTO users VALUES (1, 'Rahul');</code>";
+                resp.hi = "<b>INSERT INTO</b> se table me naye records/rows add kiye jaate hain.";
+                resp.bn = "<b>INSERT INTO</b> ব্যবহার করে টেবিলে নতুন ডাটা বা রো যোগ করা হয়।";
+            } else if (q.includes("update")) {
+                resp.en = "<b>UPDATE</b> modifies existing records in a table.<br><code>UPDATE users SET name='Amit' WHERE id=1;</code>";
+                resp.hi = "<b>UPDATE</b> se table ke purane data ko modify karte hain.";
+                resp.bn = "<b>UPDATE</b> দিয়ে টেবিলে থাকা বিদ্যমান ডাটা পরিবর্তন করা হয়।";
+            } else if (q.includes("delete")) {
+                resp.en = "<b>DELETE</b> removes specific rows from a table using a WHERE clause.";
+                resp.hi = "<b>DELETE</b> command se kisi specific record ko table se hataya jata hai.";
+                resp.bn = "<b>DELETE</b> ব্যবহার করে নির্দিষ্ট শর্তের ভিত্তিতে টেবিলে থাকা ডাটা মুছে ফেলা হয়।";
+            } else if (q.includes("join") || q.includes("inner join") || q.includes("left join") || q.includes("right join")) {
+                resp.en = "<b>Joins</b> combine rows from two or more tables based on a related column.<br>Types: INNER, LEFT, RIGHT, FULL OUTER, CROSS, SELF JOIN.";
+                resp.hi = "<b>JOIN</b> do ya usse zyada tables ke records ko aapas me connect karne ke liye use hota hai.";
+                resp.bn = "<b>JOIN</b> ব্যবহার করে সাধারণ কলামের ওপর ভিত্তি করে একাধিক টেবিলের তথ্য একত্র করা হয়।";
+            } else if (q.includes("acid") || q.includes("transaction")) {
+                resp.en = "<b>ACID Properties:</b><br>• Atomicity (All or Nothing)<br>• Consistency (Data Validity)<br>• Isolation (Independent Execution)<br>• Durability (Permanent Changes)";
+                resp.hi = "<b>ACID Properties:</b> Atomicity, Consistency, Isolation, Durability. Ye database transactions ki reliability ensure karte hain.";
+                resp.bn = "<b>ACID Properties:</b> Atomicity, Consistency, Isolation, Durability - এগুলো লেনদেনের নির্ভুলতা বজায় রাখে।";
+            } else if (q.includes("normalization") || q.includes("1nf") || q.includes("2nf") || q.includes("3nf") || q.includes("bcnf")) {
+                resp.en = "<b>Normalization</b> reduces data redundancy and improves integrity.<br>Forms: 1NF (Atomic), 2NF (No Partial Dep), 3NF (No Transitive Dep), BCNF.";
+                resp.hi = "<b>Normalization</b> se database ka duplicate data hataya jata hai aur structure ko optimize kiya jata hai.";
+                resp.bn = "<b>Normalization</b> ডাটাবেস থেকে অপ্রয়োজনীয় ডাটার পুনরাবৃত্তি কমায়।";
+            } else if (q.includes("key") || q.includes("primary key") || q.includes("foreign key")) {
+                resp.en = "<b>Keys:</b> Primary Key (Unique + NOT NULL), Foreign Key (Links tables), Candidate Key, Super Key, Composite Key.";
+                resp.hi = "<b>Keys:</b> Primary Key row ko uniquely identify karti hai, Foreign Key do tables ko link karti hai.";
+                resp.bn = "<b>Keys:</b> Primary Key প্রতিটি রো-কে ইউনিক চিহ্নিত করে এবং Foreign Key দুটি টেবিল লিঙ্ক করে।";
+            } else if (q.includes("ddl") || q.includes("dml") || q.includes("dql") || q.includes("tcl") || q.includes("dcl")) {
+                resp.en = "<b>SQL Sub-languages:</b><br>• DDL: CREATE, ALTER, DROP, TRUNCATE<br>• DML: INSERT, UPDATE, DELETE<br>• DQL: SELECT<br>• TCL: COMMIT, ROLLBACK, SAVEPOINT<br>• DCL: GRANT, REVOKE";
+                resp.hi = "<b>SQL Commands:</b> DDL (Structure), DML (Data Modify), DQL (Data Fetch), TCL (Transactions), DCL (Permissions).";
+                resp.bn = "<b>SQL প্রকারভেদ:</b> DDL (কাঠামো), DML (ডাটা পরিবর্তন), DQL (ডাটা তোলা), TCL (লেনদেন), DCL (অনুমতি)।";
             } else {
-                response = "Ask me any SQL command like SELECT, INSERT, UPDATE, DELETE, WHERE, or JOIN! (Supported: English, Hindi, Bengali)";
+                resp.en = "I can help you with <b>" + rawText + "</b> and topics like DBMS, RDBMS, DDL/DML, Joins, ACID, Normalization, Indexing, Triggers, Procedures, and Execution Plans.";
+                resp.hi = "Main <b>" + rawText + "</b> aur baaki sabhi SQL/DBMS topics jaise Joins, Keys, Normalization, ACID, Procedures, Triggers ke baare me bata sakta hoon.";
+                resp.bn = "আমি আপনাকে <b>" + rawText + "</b> সহ SQL ও DBMS-এর যেকোনো বিষয় নিয়ে সাহায্য করতে পারি।";
             }
 
+            var finalResponse = resp[lang] || resp.en;
+
             setTimeout(function() {
-                chatBody.innerHTML += '<div class="ai-msg ai-msg-bot">' + response + '</div>';
+                chatBody.innerHTML += '<div class="ai-msg ai-msg-bot">' + finalResponse + '</div>';
                 chatBody.scrollTop = chatBody.scrollHeight;
             }, 300);
 
