@@ -1,10 +1,13 @@
 const express = require('express');
+const cors = require('cors');
 const initSqlJs = require('sql.js');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS block hatane ke liye middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
