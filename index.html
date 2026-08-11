@@ -82,7 +82,7 @@
         .ai-assistant-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
         .ai-fab { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-blue); color: white; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
         .ai-fab:hover { transform: scale(1.05); }
-        .ai-chat-box { display: none; width: 330px; height: 430px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; position: absolute; bottom: 60px; right: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.5); flex-direction: column; overflow: hidden; }
+        .ai-chat-box { display: none; width: 340px; height: 450px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; position: absolute; bottom: 60px; right: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.5); flex-direction: column; overflow: hidden; }
         .ai-chat-header { height: 40px; background: var(--subbar-bg); padding: 0 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: bold; color: #38bdf8; }
         .ai-chat-body { flex: 1; padding: 10px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
         .ai-msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; word-break: break-word; }
@@ -139,16 +139,16 @@
         <button class="ai-fab" onclick="toggleAIChat()" title="SQL AI Assistant">🤖</button>
         <div class="ai-chat-box" id="aiChatBox">
             <div class="ai-chat-header">
-                <span>🤖 SQL AI Helper</span>
+                <span>🤖 Gemini AI Assistant</span>
                 <span style="cursor:pointer;" onclick="toggleAIChat()">✖</span>
             </div>
             <div class="ai-chat-body" id="aiChatBody">
                 <div class="ai-msg ai-msg-bot">
-                    I’m your SQL Assistant, here to help you solve SQL problems, write queries, and understand database concepts.
+                    Hey! Main apka AI Assistant hu. Aap mujhse SQL ke baare me ya koi bhi normal baat puch sakte ho! 😊
                 </div>
             </div>
             <div class="ai-chat-footer">
-                <input type="text" id="aiInput" placeholder="Ask SQL question..." onkeypress="if(event.key==='Enter') sendAIMessage()">
+                <input type="text" id="aiInput" placeholder="Pucho kuch bhi..." onkeypress="if(event.key==='Enter') sendAIMessage()">
                 <button onclick="sendAIMessage()">Send</button>
             </div>
         </div>
@@ -156,6 +156,9 @@
 
     <script>
         window.BACKEND_URL = "https://sql-practice-engine-2.onrender.com";
+        
+        // Gemini API Configuration
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // <-- Yaha apni API Key daalna
 
         window.updateLineNumbers = function() {
             var textarea = document.getElementById('sqlInput');
@@ -193,87 +196,53 @@
             }
         };
 
-        function detectLanguage(text) {
-            var bnRegex = /[\u0980-\u09FF]/;
-            if (bnRegex.test(text)) return "bn";
-            
-            var textLower = text.toLowerCase();
-            var hinglishWords = ["kya", "kaise", "kab", "kahan", "kaise", "karo", "batao", "banao", "raha", "saka", "ko", "ka", "me", "se", "hai", "hota"];
-            var words = textLower.split(/\s+/);
-            for (var i = 0; i < words.length; i++) {
-                if (hinglishWords.indexOf(words[i]) !== -1) return "hi";
-            }
-            return "en";
-        }
-
-        window.sendAIMessage = function() {
+        // Real AI Integration using Gemini API
+        window.sendAIMessage = async function() {
             var input = document.getElementById('aiInput');
             var chatBody = document.getElementById('aiChatBody');
             if (!input || !chatBody) return;
             
-            var rawText = input.value.trim();
-            if (!rawText) return;
+            var userText = input.value.trim();
+            if (!userText) return;
 
-            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + rawText + '</div>';
+            // User Message Show
+            chatBody.innerHTML += '<div class="ai-msg ai-msg-user">' + userText + '</div>';
             input.value = '';
+            chatBody.scrollTop = chatBody.scrollHeight;
 
-            var lang = detectLanguage(rawText);
-            var q = rawText.toLowerCase();
+            // Loading Message Show
+            var loadingId = 'loading-' + Date.now();
+            chatBody.innerHTML += '<div class="ai-msg ai-msg-bot" id="' + loadingId + '">Thinking... 💭</div>';
+            chatBody.scrollTop = chatBody.scrollHeight;
 
-            var resp = { en: "", hi: "", bn: "" };
+            try {
+                // Fetch response from Gemini API
+                var response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: userText }]
+                        }]
+                    })
+                });
 
-            if (q.includes("alter")) {
-                resp.en = "<b>ALTER</b> command modifies table structure (e.g., ADD, DROP, or MODIFY columns).<br><code>ALTER TABLE users ADD age INT;</code>";
-                resp.hi = "<b>ALTER</b> command se hum kisi existing table ka structure change karte hain, jaise naya column add karna.";
-                resp.bn = "<b>ALTER</b> কমান্ড দিয়ে বিদ্যমান টেবিলের কাঠামো যেমন নতুন কলাম যোগ বা সংশোধন করা হয়।";
-            } else if (q.includes("select")) {
-                resp.en = "<b>SELECT</b> statement fetches data from a database table.<br><code>SELECT * FROM users;</code>";
-                resp.hi = "<b>SELECT</b> ka upyog table se data retrieve ya nikalne ke liye hota hai.";
-                resp.bn = "<b>SELECT</b> স্টেটমেন্ট দিয়ে ডাটাবেস টেবিল থেকে ডাটা রিট্রিভ করা হয়।";
-            } else if (q.includes("insert")) {
-                resp.en = "<b>INSERT INTO</b> adds new rows into a table.<br><code>INSERT INTO users VALUES (1, 'Rahul');</code>";
-                resp.hi = "<b>INSERT INTO</b> se table me naye records/rows add kiye jaate hain.";
-                resp.bn = "<b>INSERT INTO</b> ব্যবহার করে টেবিলে নতুন ডাটা বা রো যোগ করা হয়।";
-            } else if (q.includes("update")) {
-                resp.en = "<b>UPDATE</b> modifies existing records in a table.<br><code>UPDATE users SET name='Amit' WHERE id=1;</code>";
-                resp.hi = "<b>UPDATE</b> se table ke purane data ko modify karte hain.";
-                resp.bn = "<b>UPDATE</b> দিয়ে টেবিলে থাকা বিদ্যমান ডাটা পরিবর্তন করা হয়।";
-            } else if (q.includes("delete")) {
-                resp.en = "<b>DELETE</b> removes specific rows from a table using a WHERE clause.";
-                resp.hi = "<b>DELETE</b> command se kisi specific record ko table se hataya jata hai.";
-                resp.bn = "<b>DELETE</b> ব্যবহার করে নির্দিষ্ট শর্তের ভিত্তিতে টেবিলে থাকা ডাটা মুছে ফেলা হয়।";
-            } else if (q.includes("join") || q.includes("inner join") || q.includes("left join") || q.includes("right join")) {
-                resp.en = "<b>Joins</b> combine rows from two or more tables based on a related column.<br>Types: INNER, LEFT, RIGHT, FULL OUTER, CROSS, SELF JOIN.";
-                resp.hi = "<b>JOIN</b> do ya usse zyada tables ke records ko aapas me connect karne ke liye use hota hai.";
-                resp.bn = "<b>JOIN</b> ব্যবহার করে সাধারণ কলামের ওপর ভিত্তি করে একাধিক টেবিলের তথ্য একত্র করা হয়।";
-            } else if (q.includes("acid") || q.includes("transaction")) {
-                resp.en = "<b>ACID Properties:</b><br>• Atomicity (All or Nothing)<br>• Consistency (Data Validity)<br>• Isolation (Independent Execution)<br>• Durability (Permanent Changes)";
-                resp.hi = "<b>ACID Properties:</b> Atomicity, Consistency, Isolation, Durability. Ye database transactions ki reliability ensure karte hain.";
-                resp.bn = "<b>ACID Properties:</b> Atomicity, Consistency, Isolation, Durability - এগুলো লেনদেনের নির্ভুলতা বজায় রাখে।";
-            } else if (q.includes("normalization") || q.includes("1nf") || q.includes("2nf") || q.includes("3nf") || q.includes("bcnf")) {
-                resp.en = "<b>Normalization</b> reduces data redundancy and improves integrity.<br>Forms: 1NF (Atomic), 2NF (No Partial Dep), 3NF (No Transitive Dep), BCNF.";
-                resp.hi = "<b>Normalization</b> se database ka duplicate data hataya jata hai aur structure ko optimize kiya jata hai.";
-                resp.bn = "<b>Normalization</b> ডাটাবেস থেকে অপ্রয়োজনীয় ডাটার পুনরাবৃত্তি কমায়।";
-            } else if (q.includes("key") || q.includes("primary key") || q.includes("foreign key")) {
-                resp.en = "<b>Keys:</b> Primary Key (Unique + NOT NULL), Foreign Key (Links tables), Candidate Key, Super Key, Composite Key.";
-                resp.hi = "<b>Keys:</b> Primary Key row ko uniquely identify karti hai, Foreign Key do tables ko link karti hai.";
-                resp.bn = "<b>Keys:</b> Primary Key প্রতিটি রো-কে ইউনিক চিহ্নিত করে এবং Foreign Key দুটি টেবিল লিঙ্ক করে।";
-            } else if (q.includes("ddl") || q.includes("dml") || q.includes("dql") || q.includes("tcl") || q.includes("dcl")) {
-                resp.en = "<b>SQL Sub-languages:</b><br>• DDL: CREATE, ALTER, DROP, TRUNCATE<br>• DML: INSERT, UPDATE, DELETE<br>• DQL: SELECT<br>• TCL: COMMIT, ROLLBACK, SAVEPOINT<br>• DCL: GRANT, REVOKE";
-                resp.hi = "<b>SQL Commands:</b> DDL (Structure), DML (Data Modify), DQL (Data Fetch), TCL (Transactions), DCL (Permissions).";
-                resp.bn = "<b>SQL প্রকারভেদ:</b> DDL (কাঠামো), DML (ডাটা পরিবর্তন), DQL (ডাটা তোলা), TCL (লেনদেন), DCL (অনুমতি)।";
-            } else {
-                resp.en = "I can help you with <b>" + rawText + "</b> and topics like DBMS, RDBMS, DDL/DML, Joins, ACID, Normalization, Indexing, Triggers, Procedures, and Execution Plans.";
-                resp.hi = "Main <b>" + rawText + "</b> aur baaki sabhi SQL/DBMS topics jaise Joins, Keys, Normalization, ACID, Procedures, Triggers ke baare me bata sakta hoon.";
-                resp.bn = "আমি আপনাকে <b>" + rawText + "</b> সহ SQL ও DBMS-এর যেকোনো বিষয় নিয়ে সাহায্য করতে পারি।";
+                var data = await response.json();
+                var botMessage = "";
+
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    botMessage = data.candidates[0].content.parts[0].text;
+                    // Format bold and newlines slightly
+                    botMessage = botMessage.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                } else {
+                    botMessage = "Sorry, main abhi response generate nahi kar paaya.";
+                }
+
+                document.getElementById(loadingId).innerHTML = botMessage;
+
+            } catch (err) {
+                document.getElementById(loadingId).innerHTML = "❌ Connection Error! Kripya API Key check karein.";
             }
-
-            var finalResponse = resp[lang] || resp.en;
-
-            setTimeout(function() {
-                chatBody.innerHTML += '<div class="ai-msg ai-msg-bot">' + finalResponse + '</div>';
-                chatBody.scrollTop = chatBody.scrollHeight;
-            }, 300);
 
             chatBody.scrollTop = chatBody.scrollHeight;
         };
@@ -364,7 +333,7 @@
             }
         };
 
-        // Firebase Initialization Safely
+        // Firebase Auth Logic
         try {
             var firebaseConfig = {
                 apiKey: "AIzaSyBi5XWhL3mMIDhaO1N3eFUz9siJyAdLzfg",
