@@ -58,18 +58,22 @@
         .table-list { padding: 10px; overflow-y: auto; flex: 1; }
         .table-item { padding: 8px 12px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-family: monospace; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 
-        .workspace-center { flex: 1; display: flex; flex-direction: column; }
-        .editor-toolbar { height: 40px; background: var(--subbar-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; }
+        .workspace-center { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .editor-toolbar { height: 40px; background: var(--subbar-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; flex-shrink: 0; }
         .btn-group { display: flex; gap: 8px; }
         .action-btn { background: #1e293b; color: #fff; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
         .btn-run { background: var(--accent-blue); border-color: var(--accent-blue); font-weight: bold; color: #fff; }
 
-        .editor-box { height: 50%; background: var(--editor-bg); display: flex; position: relative; overflow: hidden; }
+        .editor-box { height: 50%; min-height: 80px; background: var(--editor-bg); display: flex; position: relative; overflow: hidden; }
         .line-numbers { min-width: 45px; background: var(--line-bg); padding: 12px 8px; color: #475569; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; text-align: right; border-right: 1px solid var(--border-color); user-select: none; overflow: hidden; white-space: pre-wrap; }
         textarea { flex: 1; background: transparent; color: var(--text-main); border: none; outline: none; padding: 12px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; line-height: 1.5; resize: none; overflow-y: auto; white-space: pre; }
 
-        .output-box { flex: 1; background: var(--bg-dark); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .output-header { height: 32px; background: var(--subbar-bg); padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); }
+        /* Draggable Resizer Bar */
+        .resizer-bar { height: 6px; background: var(--border-color); cursor: row-resize; user-select: none; flex-shrink: 0; transition: background 0.2s; }
+        .resizer-bar:hover, .resizer-bar.dragging { background: var(--accent-blue); }
+
+        .output-box { flex: 1; min-height: 80px; background: var(--bg-dark); display: flex; flex-direction: column; overflow: hidden; }
+        .output-header { height: 32px; background: var(--subbar-bg); padding: 0 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
         .output-content { flex: 1; padding: 12px; overflow: auto; }
 
         table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-dark); border-radius: 4px; }
@@ -113,7 +117,7 @@
             <div class="table-list" id="tablesList"></div>
         </div>
 
-        <div class="workspace-center">
+        <div class="workspace-center" id="workspaceCenter">
             <div class="editor-toolbar">
                 <div class="btn-group">
                     <button class="action-btn btn-run" onclick="executeSQL()">▶ Run (Ctrl+Enter)</button>
@@ -121,12 +125,15 @@
                 </div>
             </div>
 
-            <div class="editor-box">
+            <div class="editor-box" id="editorBox">
                 <div class="line-numbers" id="lineNumbers">1</div>
                 <textarea id="sqlInput" spellcheck="false" placeholder="Write any SQL query..." oninput="updateLineNumbers()" onscroll="syncScroll()" onkeyup="updateLineNumbers()"></textarea>
             </div>
 
-            <div class="output-box">
+            <!-- Draggable Divider Bar -->
+            <div class="resizer-bar" id="resizer"></div>
+
+            <div class="output-box" id="outputBox">
                 <div class="output-header">📊 Query Output & Execution Log</div>
                 <div class="output-content" id="outputArea">
                     <span style="color: var(--text-muted); font-size: 13px;">Write a query and click <b>Run</b>.</span>
@@ -404,6 +411,40 @@
             }
             window.updateLineNumbers();
             window.fetchTables();
+
+            // Drag Resizer Logic
+            var resizer = document.getElementById('resizer');
+            var editorBox = document.getElementById('editorBox');
+            var workspaceCenter = document.getElementById('workspaceCenter');
+            var isDragging = false;
+
+            if (resizer && editorBox && workspaceCenter) {
+                resizer.addEventListener('mousedown', function(e) {
+                    isDragging = true;
+                    resizer.classList.add('dragging');
+                    document.body.style.cursor = 'row-resize';
+                    document.body.style.userSelect = 'none';
+                });
+
+                document.addEventListener('mousemove', function(e) {
+                    if (!isDragging) return;
+                    var rect = workspaceCenter.getBoundingClientRect();
+                    var offsetTop = e.clientY - rect.top - 40; // Subtract toolbar height
+                    
+                    if (offsetTop >= 80 && offsetTop <= rect.height - 120) {
+                        editorBox.style.height = offsetTop + 'px';
+                    }
+                });
+
+                document.addEventListener('mouseup', function() {
+                    if (isDragging) {
+                        isDragging = false;
+                        resizer.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                    }
+                });
+            }
         });
     </script>
 </body>
